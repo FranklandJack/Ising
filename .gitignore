@@ -1,0 +1,4 @@
+# Git ignore file.
+
+# Stop any pdfs getting uploaded to github, e.g. project specification.
+*.pdf
