@@ -72,3 +72,13 @@ double SpinLattice2D::latticeEnergy(double jConstant) const
 
 	return jConstant*sum;
 }
+
+int SpinLattice2D::getRows() const
+{
+	return m_rowCount;
+}
+
+int SpinLattice2D::getCols() const
+{
+	return m_colCount;
+}

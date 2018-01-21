@@ -22,6 +22,8 @@ class SpinLattice2D
 		void swap(int,int,int,int);
 		double siteEnergy(int,int,double) const;
 		double latticeEnergy(double) const;
+		int getCols() const;
+		int getRows() const;
 
 
 };
