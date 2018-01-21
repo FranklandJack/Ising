@@ -7,7 +7,7 @@ OBJ_FILES=$(patsubst $(SRC_DIR)/%.cpp, %.o, $(SRC_FILES))
 
 
 CXX=g++
-CPPSTD=-std=c++11 
+CPPSTD=-std=c++14 
 DEBUG=-g
 OPT=-O2
 LFLAGS= -lboost_program_options -lboost_system -lboost_filesystem
@@ -18,7 +18,7 @@ EXE_FILE=ising
 
 
 $(EXE_FILE): $(OBJ_FILES) 
-	$(CXX) $(CPPSTD) $(OPT) -o $@  $^ $(LFLAGS)
+	$(CXX) $(CPPSTD) $(DEBUG) -o $@  $^ $(LFLAGS)
 
 
 ## objs      : create object files
@@ -26,7 +26,7 @@ $(EXE_FILE): $(OBJ_FILES)
 objs : $(OBJ_FILES) $(TEST_OBJ_FILES)
 
 %.o : $(SRC_DIR)/%.cpp $(HEADERS)
-	$(CXX) $(CPPSTD) $(OPT) -c $< -o $@ $(INC) 
+	$(CXX) $(CPPSTD) $(DEBUG) -c $< -o $@ $(INC) 
 
 
 

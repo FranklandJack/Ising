@@ -2,3 +2,6 @@
 
 # Stop any pdfs getting uploaded to github, e.g. project specification.
 *.pdf
+
+# Stop the .DS_store file that gets generated on OSX when you look in the folder through finder getting uploaded.
+.DS_store
