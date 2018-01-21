@@ -18,7 +18,7 @@ EXE_FILE=ising
 
 
 $(EXE_FILE): $(OBJ_FILES) 
-	$(CXX) $(CPPSTD) $(DEBUG) -o $@  $^ $(LFLAGS)
+	$(CXX) $(CPPSTD) $(OPT) -o $@  $^ $(LFLAGS)
 
 
 ## objs      : create object files
@@ -26,7 +26,7 @@ $(EXE_FILE): $(OBJ_FILES)
 objs : $(OBJ_FILES) $(TEST_OBJ_FILES)
 
 %.o : $(SRC_DIR)/%.cpp $(HEADERS)
-	$(CXX) $(CPPSTD) $(DEBUG) -c $< -o $@ $(INC) 
+	$(CXX) $(CPPSTD) $(OPT) -c $< -o $@ $(INC) 
 
 
 

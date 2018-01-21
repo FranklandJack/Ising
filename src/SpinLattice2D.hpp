@@ -11,8 +11,7 @@ class SpinLattice2D
 		int m_rowCount;
 		std::vector<int> m_spinMatrix;
 
-		int& operator()(int,int);
-		const int& operator()(int,int) const;
+		
 
 	public:
 		SpinLattice2D(int,int);
@@ -21,9 +20,14 @@ class SpinLattice2D
 		void flip(int,int);
 		void swap(int,int,int,int);
 		double siteEnergy(int,int,double) const;
+		double sitePairEnergy(int,int,int,int,double) const;
 		double latticeEnergy(double) const;
 		int getCols() const;
 		int getRows() const;
+		bool nearestNeighbours(int,int,int,int) const;
+		int& operator()(int,int);
+		const int& operator()(int,int) const;
+		int totalMag() const;
 
 
 };
