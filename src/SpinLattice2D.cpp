@@ -1,8 +1,7 @@
 #include "SpinLattice2D.hpp"
 
-SpinLattice2D::SpinLattice2D(int rows, int cols): m_rowCount{rows}, m_colCount{cols}
+SpinLattice2D::SpinLattice2D(int rows, int cols): m_rowCount{rows}, m_colCount{cols}, m_spinMatrix(m_rowCount*m_colCount,1)
 {
-	m_spinMatrix.resize(m_rowCount*m_colCount);
 }
 
 int& SpinLattice2D::operator()(int row, int col)
@@ -49,7 +48,8 @@ void SpinLattice2D::flip(int row, int col)
 
 void SpinLattice2D::swap(int row1, int col1, int row2, int col2)
 {
-	std::swap((*this)(row1,col1),(*this)(row2,col2));
+	(*this)(row1,col1) *= -1;
+	(*this)(row2,col2) *= -1;
 }
 
 double SpinLattice2D::siteEnergy(int row, int col, double jConstant) const 

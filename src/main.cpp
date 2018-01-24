@@ -2,6 +2,7 @@
 #include "SpinLattice2D.hpp" // For the spin lattice.
 #include "glauberDynamics.hpp" // For implementing the Glauber dynamics.
 #include "kawasakiDynamics.hpp" //  For implementing the kawasaki dynamics.
+#include "SpinBitLattice2D.hpp"
 #include <boost/filesystem.hpp> // For constructing directories for file io.
 #include <boost/program_options.hpp> // For command line arguments.
 #include <fstream> // For file output.
@@ -11,6 +12,7 @@
 #include "Timer.hpp" // For custom timer. 
 #include <iomanip> // For output formatting.
 #include <cmath> // For any maths functions.  
+
 
 namespace po = boost::program_options;
 using namespace std;
@@ -71,6 +73,8 @@ int main(int argc, char const *argv[])
     double jConstant;
     int configurations;
     double boltzmannConstant;
+    bool outputLattice;
+    int sweeps;
 
     // Set up optional command line argument.
     po::options_description desc("Options for Ising model simulation");
@@ -93,15 +97,20 @@ int main(int argc, char const *argv[])
         // Option 'configurations' and 'C' are equivalent.
         ("configurations,C", po::value<int>(&configurations)->default_value(100000),"Number of configurations to generate after the burn period.")
         // Option 'burn-period' and 'b' are equivalent.
-        ("burn-period,b", po::value<int>(&burnPeriod)->default_value(100), "Number of configurations before measurement starts.")
+        ("burn-period,b", po::value<int>(&burnPeriod)->default_value(1000), "Number of configurations before measurement starts.")
         // Option 'measurement-interval' and 'i' are equivalent.
         ("measurement-interval,i", po::value<int>(&measurementInterval)->default_value(10), "How many configurations between measurement are made.")
+        // Option 'output-lattice' and 'o' are equivalent.
+        ("output-lattice,o","Output the lattice after each sweep.")
         // Option 'help' and 'h' are equivalent.
         ("help,h", "produce help message");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc,argv,desc), vm);
     po::notify(vm);
+
+    // Calculate the number of sweeps, i.e. number of spin operations on each Monte-Carlo update.
+    sweeps = rowCount * columnCount;
 
     // If the user asks for help display it then exit.
     if(vm.count("help"))
@@ -120,7 +129,16 @@ int main(int argc, char const *argv[])
     	dynamics = kawasakiDynamics;
     }
 
-
+    // If the user specified lattice output then make sure it happens. 
+    if(vm.count("output-lattice"))
+    {
+    	outputLattice = true;
+    }
+    // By default don't output the lattice
+    else
+    {
+    	outputLattice = false;
+    }
 
     // Tell user their input values to check they are correct.
     int outputColumnWidth = 30;
@@ -139,7 +157,6 @@ int main(int argc, char const *argv[])
     // Create the lattice of spins.
     SpinLattice2D spinLattice{rowCount,columnCount};
     spinLattice.randomise(generator);
-    
     // Create the output variables that will hold the Monte-Carlo estimates.
     double totalEnergy{0};
     double totalEnergySquared{0};
@@ -149,11 +166,12 @@ int main(int argc, char const *argv[])
     // Main loop that actually runs the simulation.
     for(int config = 0; config < burnPeriod+configurations; ++config)
     {
-    	// Update system.
-    	dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature);
+    	
+    		dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature);
+    	
 
     	// If we are out of the burn period and on a measurement configuration then make any measurements.
-    	if((config>burnPeriod) && ((config&measurementInterval) == 0))
+    	if((config>burnPeriod) && ((config%measurementInterval) == 0))
     	{
     		double energy = spinLattice.latticeEnergy(jConstant);
     		totalEnergy += energy;
@@ -161,21 +179,24 @@ int main(int argc, char const *argv[])
 
     		double magnetisation = spinLattice.totalMag();
     		totalMagnetisation += magnetisation;
-    		totalMagnetisation += magnetisation*magnetisation;
+    		totalMagnetisationSquared += magnetisation*magnetisation;
 
-    		spinsOutput << spinLattice;
+    		if(outputLattice)
+    		{
+    			spinsOutput << spinLattice;
+    		}
     	}
     }
 
     // Make sure Monte-Carlo estimates have been averaged.
     int totalSamples = configurations/measurementInterval;
-    totalEnergy 	   		  /= totalSamples;
-    totalEnergySquared 		  /= totalSamples;
-    totalMagnetisation 		  /= totalSamples;
-    totalMagnetisationSquared /= totalSamples;
+    totalEnergy 	   		  /= static_cast<double>(totalSamples);
+    totalEnergySquared 		  /= static_cast<double>(totalSamples);
+    totalMagnetisation 		  /= static_cast<double>(totalSamples);
+    totalMagnetisationSquared /= static_cast<double>(totalSamples);
 
     // Calculate the standard error in the measured values.
-    double totalEnergySDE = sqrt((totalEnergySquared - totalEnergy * totalEnergy)/totalSamples);
+    double totalEnergySDE = sqrt((totalEnergySquared - totalEnergy * totalEnergy)/totalSamples); 
     double totalMagnetisationSDE = sqrt((totalMagnetisationSquared - totalMagnetisation * totalMagnetisation)/totalSamples);
 
     // Output results to command line.
