@@ -30,13 +30,16 @@ void SpinLattice2D::randomise(std::default_random_engine generator)
 
 std::ostream& operator<<(std::ostream& out, const SpinLattice2D& spinLattice)
 {
-	for(unsigned row = 0; row < spinLattice.m_rowCount; ++row)
+	for(int row = 0; row < spinLattice.m_rowCount; ++row)
 	{
-		for(unsigned col = 0; col < spinLattice.m_colCount; ++col)
+		for(int col = 0; col < spinLattice.m_colCount; ++col)
 		{
-			out << spinLattice(row,col) << ' ';
+			out << std::showpos << spinLattice(row,col) << ' ';
 		}
-		out << '\n';
+		if(row != spinLattice.m_rowCount-1)
+		{
+			out << '\n';
+		}
 	}
 	return out;
 }

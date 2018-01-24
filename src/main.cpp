@@ -58,7 +58,7 @@ int main(int argc, char const *argv[])
     boost::filesystem::create_directory(outPath);
 
     //Create output file for the spin array.
-    ofstream spinsOutput(outputName+"/spins.dat",ios::trunc);
+    fstream spinsOutput(outputName+"/spins.dat",ios::out);
 
     /*************************************************************************************************************************
      ******************************************************** Input **********************************************************
@@ -167,7 +167,7 @@ int main(int argc, char const *argv[])
     for(int config = 0; config < burnPeriod+configurations; ++config)
     {
     	
-    		dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature);
+    	dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature);
     	
 
     	// If we are out of the burn period and on a measurement configuration then make any measurements.
@@ -183,7 +183,8 @@ int main(int argc, char const *argv[])
 
     		if(outputLattice)
     		{
-    			spinsOutput << spinLattice;
+    			spinsOutput.seekg(0,ios::beg);
+    			spinsOutput << spinLattice << flush;
     		}
     	}
     }
@@ -199,10 +200,20 @@ int main(int argc, char const *argv[])
     double totalEnergySDE = sqrt((totalEnergySquared - totalEnergy * totalEnergy)/totalSamples); 
     double totalMagnetisationSDE = sqrt((totalMagnetisationSquared - totalMagnetisation * totalMagnetisation)/totalSamples);
 
+    // Calculate susceptibility.
+    double susceptibility = 1.0/(spinLattice.getRows() * spinLattice.getCols() * boltzmannConstant * temperature) * 
+    						(totalMagnetisationSquared - totalMagnetisation * totalMagnetisation);
+
+    // Calculate heat capacity.
+    double heatCapacity = 1.0/(spinLattice.getRows()*spinLattice.getCols() * boltzmannConstant * temperature * temperature) *
+    						(totalEnergySquared - totalEnergy * totalEnergy);
+
     // Output results to command line.
     cout << "Output..." << '\n';
     cout << setw(outputColumnWidth) << setfill(' ') << left << "<E> = " << right << totalEnergy << " +/- " << totalEnergySDE << '\n';
 	cout << setw(outputColumnWidth) << setfill(' ') << left << "<M> = " << right << totalMagnetisation << " +/- " << totalMagnetisationSDE << '\n';
+	cout << setw(outputColumnWidth) << setfill(' ') << left << " X = " << right << susceptibility << '\n';
+	cout << setw(outputColumnWidth) << setfill(' ') << left << " C = " << right << heatCapacity << '\n';
     cout << setw(outputColumnWidth) << setfill(' ') << left << "Time take to execute(s) =    " << right << timer.elapsed() << endl << endl;
     return 0;
 }
