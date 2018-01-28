@@ -5,7 +5,7 @@
 #include <cmath>
 #include <random>
 #include <iostream>
-
+#include "Estimate.hpp"
 
 class DataArray
 {
