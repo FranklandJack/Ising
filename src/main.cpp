@@ -3,6 +3,8 @@
 #include "glauberDynamics.hpp" // For implementing the Glauber dynamics.
 #include "kawasakiDynamics.hpp" //  For implementing the kawasaki dynamics.
 #include "SpinBitLattice2D.hpp"
+#include "DataArray.hpp"
+#include "makeDirectory.hpp"
 #include <boost/filesystem.hpp> // For constructing directories for file io.
 #include <boost/program_options.hpp> // For command line arguments.
 #include <fstream> // For file output.
@@ -31,34 +33,27 @@ int main(int argc, char const *argv[])
     // Create a generator that can be fed to any distribution to produce pseudo random numbers according to that distribution. 
     default_random_engine generator(seed);
 
-    // Begin a timer for the output directory.
-    auto start = chrono::system_clock::now();
-
-    // Create string from the time the program started.
-    time_t startTime = chrono::system_clock::to_time_t(start);
-    string outputName = ctime(&startTime);
-
-    // Strip out and replace difficult characters.
-    std::transform(outputName.begin(), outputName.end(), outputName.begin(), [](char ch) {return ch == ' ' ? '_' : ch;});
-    std::transform(outputName.begin(), outputName.end(), outputName.begin(), [](char ch) {return ch == ':' ? '-' : ch;});
-    outputName.erase(std::remove(outputName.begin(), outputName.end(), '\n'), outputName.end());
-
-    // Create directory path from the string.
-    boost::filesystem::path outPath = outputName;
-    
-    // If user calls program more than once a second so that directories will be overwritten append an index.
-    for(int i = 2; boost::filesystem::exists(outPath) && i < 100; ++i)
-    {
-        stringstream ss;
-        ss << outPath << "(" << i << ")";
-        outPath = ss.str();
-    }
-
-    // Create the directory for output.
-    boost::filesystem::create_directory(outPath);
+    string outputName(makeDirectory());
 
     //Create output file for the spin array.
     fstream spinsOutput(outputName+"/spins.dat",ios::out);
+
+    // Create output file for the input parameters.
+    fstream inputParameterOutput(outputName+"/input.txt",ios::out);
+
+    // Create an output file for the output values.
+    fstream resultsOutput(outputName+"/results.txt",ios::out);
+
+    // Create an output file for the energy. 
+    fstream energyDataOutput(outputName+"/energy.dat",ios::out);
+
+    // Create an output file for the magnetisation.
+    fstream magnetisationDataOutput(outputName + "/magentistaion.dat", ios::out);
+
+    // Create an output file for the autocorrelation of the magnetisation.
+    fstream magnetisationAutoCorrelationOutput(outputName + "/magnetisationAutocorrelation.dat",ios::out);
+
+
 
     /*************************************************************************************************************************
      ******************************************************** Input **********************************************************
@@ -69,9 +64,8 @@ int main(int argc, char const *argv[])
     double temperature;
     int burnPeriod;
     int measurementInterval;
-    void (*dynamics)(SpinLattice2D&, default_random_engine&, double, double, double);
+    bool (*dynamics)(SpinLattice2D&, default_random_engine&, double, double, double);
     double jConstant;
-    int configurations;
     double boltzmannConstant;
     bool outputLattice;
     int sweeps;
@@ -94,12 +88,12 @@ int main(int argc, char const *argv[])
         ("J-constant,J", po::value<double>(&jConstant)->default_value(1), "J constant that determines units of energy.")
         // Options 'Boltzmann-constant' and 'B' are equivalent.
         ("Boltzmann-constant",po::value<double>(&boltzmannConstant)->default_value(1),"Boltmann constant.")
-        // Option 'configurations' and 'C' are equivalent.
-        ("configurations,C", po::value<int>(&configurations)->default_value(100000),"Number of configurations to generate after the burn period.")
+        // Option 'sweeps' and 's' are equivalent.
+        ("sweeps,s", po::value<int>(&sweeps)->default_value(100000),"Number of sweeps to generate after the burn period.")
         // Option 'burn-period' and 'b' are equivalent.
-        ("burn-period,b", po::value<int>(&burnPeriod)->default_value(1000), "Number of configurations before measurement starts.")
+        ("burn-period,b", po::value<int>(&burnPeriod)->default_value(1000), "Number of sweeps before measurement starts.")
         // Option 'measurement-interval' and 'i' are equivalent.
-        ("measurement-interval,i", po::value<int>(&measurementInterval)->default_value(10), "How many configurations between measurement are made.")
+        ("measurement-interval,i", po::value<int>(&measurementInterval)->default_value(10), "How many sweeps between measurement are made.")
         // Option 'output-lattice' and 'o' are equivalent.
         ("output-lattice,o","Output the lattice after each sweep.")
         // Option 'help' and 'h' are equivalent.
@@ -108,9 +102,6 @@ int main(int argc, char const *argv[])
     po::variables_map vm;
     po::store(po::parse_command_line(argc,argv,desc), vm);
     po::notify(vm);
-
-    // Calculate the number of sweeps, i.e. number of spin operations on each Monte-Carlo update.
-    sweeps = rowCount * columnCount;
 
     // If the user asks for help display it then exit.
     if(vm.count("help"))
@@ -150,37 +141,52 @@ int main(int argc, char const *argv[])
     cout << setw(outputColumnWidth) << setfill(' ') << left << "J: " << right << jConstant << '\n';
     cout << setw(outputColumnWidth) << setfill(' ') << left << "K_B: " << right << boltzmannConstant << '\n';
     cout << setw(outputColumnWidth) << setfill(' ') << left << "Burn Period: " << right << burnPeriod<< '\n';
-	cout << setw(outputColumnWidth) << setfill(' ') << left << "# Configurations: " << right << configurations<< '\n';
+	cout << setw(outputColumnWidth) << setfill(' ') << left << "# sweeps: " << right << sweeps<< '\n';
     cout << setw(outputColumnWidth) << setfill(' ') << left << "Measurement Interval: " << right << measurementInterval << '\n';
 
 
     // Create the lattice of spins.
     SpinLattice2D spinLattice{rowCount,columnCount};
     spinLattice.randomise(generator);
+
+    // Work out the number of samples we need.
+    int totalSamples = sweeps/measurementInterval;
+
     // Create the output variables that will hold the Monte-Carlo estimates.
-    double totalEnergy{0};
-    double totalEnergySquared{0};
-    double totalMagnetisation{0};
-    double totalMagnetisationSquared{0};
+    double acceptanceRate{0};
+    bool acceptedState{false};
+    int totalSites{spinLattice.getCols()*spinLattice.getRows()};
+
+    DataArray energyData;
+    energyData.reserve(totalSamples);
+
+    DataArray magnetisationData;
+    magnetisationData.reserve(totalSamples);
+
+    DataArray scaledMagnetisation;
+    scaledMagnetisation.reserve(totalSamples);
 
     // Main loop that actually runs the simulation.
-    for(int config = 0; config < burnPeriod+configurations; ++config)
+    for(int sweep = 0; sweep < burnPeriod+sweeps; ++sweep)
     {
-    	
-    	dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature);
-    	
-
-    	// If we are out of the burn period and on a measurement configuration then make any measurements.
-    	if((config>burnPeriod) && ((config%measurementInterval) == 0))
+    	for(int site = 0; site < totalSites; ++site)
     	{
-    		double energy = spinLattice.latticeEnergy(jConstant);
-    		totalEnergy += energy;
-    		totalEnergySquared += energy*energy;
+			if(dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature) && sweep > burnPeriod)
+    		{
+    			acceptanceRate += 1;
+    		}
+    	}
+    		
+    	// If we are out of the burn period and on a measurement sweeps then make any measurements.
+    	if((sweep>burnPeriod) && ((sweep%measurementInterval) == 0))
+    	{
+    		double sweepEnergy = spinLattice.latticeEnergy(jConstant);
+    		energyData.push_back(sweepEnergy);
 
-    		double magnetisation = spinLattice.totalMag();
-    		totalMagnetisation += magnetisation;
-    		totalMagnetisationSquared += magnetisation*magnetisation;
-
+    		double sweepMagnetistation = spinLattice.totalMag();
+    		magnetisationData.push_back(sweepMagnetistation);
+    		scaledMagnetisation.push_back(sweepMagnetistation/(spinLattice.getRows()*spinLattice.getCols()));
+ 
     		if(outputLattice)
     		{
     			spinsOutput.seekg(0,ios::beg);
@@ -189,31 +195,35 @@ int main(int argc, char const *argv[])
     	}
     }
 
-    // Make sure Monte-Carlo estimates have been averaged.
-    int totalSamples = configurations/measurementInterval;
-    totalEnergy 	   		  /= static_cast<double>(totalSamples);
-    totalEnergySquared 		  /= static_cast<double>(totalSamples);
-    totalMagnetisation 		  /= static_cast<double>(totalSamples);
-    totalMagnetisationSquared /= static_cast<double>(totalSamples);
+    // Calculate the acceptance rate.
+    acceptanceRate *= 100.0/(sweeps*totalSites);
 
-    // Calculate the standard error in the measured values.
-    double totalEnergySDE = sqrt((totalEnergySquared - totalEnergy * totalEnergy)/totalSamples); 
-    double totalMagnetisationSDE = sqrt((totalMagnetisationSquared - totalMagnetisation * totalMagnetisation)/totalSamples);
+    // Calculate relevant Monte-Carlo estimates.
+    double energy = energyData.mean();
+   	double energyError = energyData.error();
 
-    // Calculate susceptibility.
-    double susceptibility = 1.0/(spinLattice.getRows() * spinLattice.getCols() * boltzmannConstant * temperature) * 
-    						(totalMagnetisationSquared - totalMagnetisation * totalMagnetisation);
+   	double magnetisation = magnetisationData.mean();
+   	double magnetisationError = magnetisationData.error();
 
-    // Calculate heat capacity.
-    double heatCapacity = 1.0/(spinLattice.getRows()*spinLattice.getCols() * boltzmannConstant * temperature * temperature) *
-    						(totalEnergySquared - totalEnergy * totalEnergy);
+   	// Print data to files.
+   	energyDataOutput << energyData;
+   	magnetisationDataOutput << magnetisationData;
+
+   	std::vector<double> magAutoCorrelation = scaledMagnetisation.autoCorrelation(0,10);
+   	for(int i = 0; i < magAutoCorrelation.size(); ++i)
+   	{
+   		magnetisationAutoCorrelationOutput << i << ' ' << magAutoCorrelation[i] << '\n';
+   	}
+
+
 
     // Output results to command line.
     cout << "Output..." << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "<E> = " << right << totalEnergy << " +/- " << totalEnergySDE << '\n';
-	cout << setw(outputColumnWidth) << setfill(' ') << left << "<M> = " << right << totalMagnetisation << " +/- " << totalMagnetisationSDE << '\n';
-	cout << setw(outputColumnWidth) << setfill(' ') << left << " X = " << right << susceptibility << '\n';
-	cout << setw(outputColumnWidth) << setfill(' ') << left << " C = " << right << heatCapacity << '\n';
+    cout << setw(outputColumnWidth) << setfill(' ') << left << "Acceptance Rate = " << right << acceptanceRate << '%' << '\n';
+    cout << setw(outputColumnWidth) << setfill(' ') << left << "<E> = " << right << energy << " +/- " << energyError << '\n';
+	cout << setw(outputColumnWidth) << setfill(' ') << left << "<M> = " << right << magnetisation << " +/- " << magnetisationError << '\n';
+	//cout << setw(outputColumnWidth) << setfill(' ') << left << " X = " << right << susceptibility << '\n';
+	//cout << setw(outputColumnWidth) << setfill(' ') << left << " C = " << right << heatCapacity << '\n';
     cout << setw(outputColumnWidth) << setfill(' ') << left << "Time take to execute(s) =    " << right << timer.elapsed() << endl << endl;
     return 0;
 }

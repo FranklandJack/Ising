@@ -1,5 +1,5 @@
 #include "kawasakiDynamics.hpp"
-void kawasakiDynamics(SpinLattice2D& spinLattice, std::default_random_engine &generator, double jConstant, double boltzmannConstant, double temperature)
+bool kawasakiDynamics(SpinLattice2D& spinLattice, std::default_random_engine &generator, double jConstant, double boltzmannConstant, double temperature)
 {
 	// Create random number genereators for the rows and columns of the spin lattice.
 	std::uniform_int_distribution<int> rowDistriubution(0,spinLattice.getRows()-1);
@@ -27,6 +27,9 @@ void kawasakiDynamics(SpinLattice2D& spinLattice, std::default_random_engine &ge
 	if(!metropolisUpdate(energyBefore, energyAfter, generator, boltzmannConstant, temperature))
 	{
 		spinLattice.swap(row1, col1, row2, col2);
+		return false;
 	}
+
+	return true;
 	
 }
