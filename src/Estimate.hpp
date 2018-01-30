@@ -17,7 +17,7 @@ public:
 	friend Estimate operator+(const Estimate&, const Estimate&);
 	friend Estimate operator-(const Estimate&, const Estimate&);
 	friend Estimate operator/(const Estimate&, const Estimate&);
-	friend Estimate operator*(const Estiamte&, const Estiamte&);
+	friend Estimate operator*(const Estimate&, const Estimate&);
 	friend std::ostream& operator<<(std::ostream&, const Estimate&);
 };
 

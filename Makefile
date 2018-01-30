@@ -35,6 +35,7 @@ objs : $(OBJ_FILES) $(TEST_OBJ_FILES)
 clean :
 	rm -f $(OBJ_FILES)
 	rm -f $(EXE_FILE)
+	rm -f *.log
 
 ## variables : Print variables
 .PHONY :variables

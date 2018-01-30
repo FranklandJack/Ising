@@ -5,48 +5,61 @@
 #include <cmath>
 #include <random>
 #include <iostream>
+#include <random>
 #include "Estimate.hpp"
+#include "IDataFunctor.hpp"
+
 
 class DataArray
 {
 private:
-	std::vector<double> m_data;
-	int m_size;
+    std::vector<double> m_data;
+    int m_size;
 
 public:
-	DataArray();
-	DataArray(int);
+    DataArray();
+    DataArray(int);
 
-	double& operator[](int);
-	const double& operator[](int) const;
+    double& operator[](int);
+    const double& operator[](int) const;
 
-	void push_back(double);
-	void pop_back();
+    void push_back(double);
+    void pop_back();
 
-	void reserve(int);
+    void reserve(int);
 
-	double mean() const;
-	double squareMean() const;
-	double error() const;
+    double sum() const;
+    double sum(const IDataFunctor&) const;
 
-	double jackKnifeMean() const;
-	double jackKnifeError() const;
+    double mean() const;
+    double mean(const IDataFunctor&) const;
 
-	double bootstrapMean() const;
-	double boostrapError() const;
+    double error() const;
+    double error(const IDataFunctor&) const;
 
-	double sum() const;
+    Estimate estimate() const;
+    Estimate estimate(const IDataFunctor&) const;
 
-	friend std::ostream& operator<<(std::ostream&, const DataArray&);
+    
+    double jackKnifeError() const;
+    double jackKnifeError(const IDataFunctor&) const;
 
-	double autoCorrelation(int) const;
+    Estimate jackKnifeEstimate() const;
+    Estimate jackKnifeEstimate(const IDataFunctor&) const;
 
-	std::vector<double> autoCorrelation(int,int) const;
+    double bootstrapError(std::default_random_engine&, int) const;
+    double bootstrapError(std::default_random_engine&, int, const IDataFunctor&) const;
 
-	void printAutoCorrelation(int,int) const;
+    Estimate bootstrapEstimate(std::default_random_engine&, int) const;
+    Estimate bootstrapEstimate(std::default_random_engine&, int, const IDataFunctor&) const;
 
+    friend std::ostream& operator<<(std::ostream&, const DataArray&);
 
+    double autoCorrelation(int) const;
 
+    std::vector<double> autoCorrelation(int,int) const;
+
+    void printAutoCorrelation(int,int) const;
 
 };
 

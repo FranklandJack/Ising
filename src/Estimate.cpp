@@ -55,6 +55,6 @@ Estimate operator*(const Estimate& a, const Estimate& b)
 
 std::ostream& operator<<(std::ostream& out, const Estimate& a)
 {
-	out << a.m_mean << "+/-" << a.m_error;
+	out << a.m_mean << " +/- " << a.m_error;
 	return out;
 }

@@ -5,6 +5,8 @@
 #include "SpinBitLattice2D.hpp"
 #include "DataArray.hpp"
 #include "makeDirectory.hpp"
+#include "IsingInputParameters.hpp"
+#include "IsingResults.hpp"
 #include <boost/filesystem.hpp> // For constructing directories for file io.
 #include <boost/program_options.hpp> // For command line arguments.
 #include <fstream> // For file output.
@@ -33,28 +35,6 @@ int main(int argc, char const *argv[])
     // Create a generator that can be fed to any distribution to produce pseudo random numbers according to that distribution. 
     default_random_engine generator(seed);
 
-    string outputName(makeDirectory());
-
-    //Create output file for the spin array.
-    fstream spinsOutput(outputName+"/spins.dat",ios::out);
-
-    // Create output file for the input parameters.
-    fstream inputParameterOutput(outputName+"/input.txt",ios::out);
-
-    // Create an output file for the output values.
-    fstream resultsOutput(outputName+"/results.txt",ios::out);
-
-    // Create an output file for the energy. 
-    fstream energyDataOutput(outputName+"/energy.dat",ios::out);
-
-    // Create an output file for the magnetisation.
-    fstream magnetisationDataOutput(outputName + "/magentistaion.dat", ios::out);
-
-    // Create an output file for the autocorrelation of the magnetisation.
-    fstream magnetisationAutoCorrelationOutput(outputName + "/magnetisationAutocorrelation.dat",ios::out);
-
-
-
     /*************************************************************************************************************************
      ******************************************************** Input **********************************************************
      *************************************************************************************************************************/
@@ -65,6 +45,7 @@ int main(int argc, char const *argv[])
     int burnPeriod;
     int measurementInterval;
     bool (*dynamics)(SpinLattice2D&, default_random_engine&, double, double, double);
+    IsingInputParameters::DynamicsType dynamicsType;
     double jConstant;
     double boltzmannConstant;
     bool outputLattice;
@@ -94,8 +75,8 @@ int main(int argc, char const *argv[])
         ("burn-period,b", po::value<int>(&burnPeriod)->default_value(1000), "Number of sweeps before measurement starts.")
         // Option 'measurement-interval' and 'i' are equivalent.
         ("measurement-interval,i", po::value<int>(&measurementInterval)->default_value(10), "How many sweeps between measurement are made.")
-        // Option 'output-lattice' and 'o' are equivalent.
-        ("output-lattice,o","Output the lattice after each sweep.")
+        // Option 'animate' and 'a' are equivalent.
+        ("animate,a","Output the lattice after each sweep for animation.")
         // Option 'help' and 'h' are equivalent.
         ("help,h", "produce help message");
 
@@ -113,15 +94,17 @@ int main(int argc, char const *argv[])
     // Set the dynamics pointer to point at the right dynamics function.
     // Default to Glauber - even if Glauber specified this will work/
     dynamics = glauberDynamics;
+    dynamicsType = IsingInputParameters::Glauber;
 
     // Check if Kawasaki specified, if so this takes precedence.
     if(vm.count("kawasaki-dynamics"))
     {
     	dynamics = kawasakiDynamics;
+    	dynamicsType = IsingInputParameters::Kawasaki;
     }
 
     // If the user specified lattice output then make sure it happens. 
-    if(vm.count("output-lattice"))
+    if(vm.count("animate"))
     {
     	outputLattice = true;
     }
@@ -130,19 +113,55 @@ int main(int argc, char const *argv[])
     {
     	outputLattice = false;
     }
-
-    // Tell user their input values to check they are correct.
     int outputColumnWidth = 30;
-    cout << "Input Parameters..." << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "# Rows: " << right << rowCount << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "# Columns : " << right << columnCount << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "Dynamics: " << right << (vm.count("kawasaki-dynamics") ? "Kawasaki" : "Glauber") << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "Temperature: " << right << temperature << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "J: " << right << jConstant << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "K_B: " << right << boltzmannConstant << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "Burn Period: " << right << burnPeriod<< '\n';
-	cout << setw(outputColumnWidth) << setfill(' ') << left << "# sweeps: " << right << sweeps<< '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "Measurement Interval: " << right << measurementInterval << '\n';
+
+    // Construct an input parameter object, this just makes printing a lot cleaner.
+    IsingInputParameters inputParameters
+    {
+    	rowCount, 
+    	columnCount, 
+    	temperature, 
+    	burnPeriod, 
+		measurementInterval, 
+		dynamicsType, 
+		jConstant,
+		boltzmannConstant,
+		sweeps
+	};
+
+	/*************************************************************************************************************************
+     ************************************************* Create Output Files ***************************************************
+     *************************************************************************************************************************/
+
+	// Create a unique output directory.
+    string outputName(makeDirectory());
+
+ 
+    //Create output file for the spin array.
+    fstream spinsOutput(outputName+"/spins.dat",ios::out);
+    
+
+    // Create output file for the input parameters.
+    fstream inputParameterOutput(outputName+"/input.txt",ios::out);
+
+    // Create an output file for the output values.
+    fstream resultsOutput(outputName+"/results.txt",ios::out);
+
+    // Create an output file for the energy. 
+    fstream energyDataOutput(outputName+"/energy.dat",ios::out);
+
+    // Create an output file for the magnetisation.
+    fstream magnetisationDataOutput(outputName + "/magentistaion.dat", ios::out);
+
+    // Create an output file for the autocorrelation of the magnetisation.
+    fstream magnetisationAutoCorrelationOutput(outputName + "/magnetisationAutocorrelation.dat",ios::out);
+
+    // Print input parameters to command line.
+    cout << inputParameters << '\n';
+
+    // Print input parameters to an output file 
+    inputParameterOutput << inputParameters << '\n';
+   
 
 
     // Create the lattice of spins.
@@ -195,15 +214,12 @@ int main(int argc, char const *argv[])
     	}
     }
 
+    // Print the final configuration so it can be reused in future.
+    spinsOutput.seekg(0,ios::beg);
+    spinsOutput << spinLattice << flush;
+
     // Calculate the acceptance rate.
     acceptanceRate *= 100.0/(sweeps*totalSites);
-
-    // Calculate relevant Monte-Carlo estimates.
-    double energy = energyData.mean();
-   	double energyError = energyData.error();
-
-   	double magnetisation = magnetisationData.mean();
-   	double magnetisationError = magnetisationData.error();
 
    	// Print data to files.
    	energyDataOutput << energyData;
@@ -214,16 +230,35 @@ int main(int argc, char const *argv[])
    	{
    		magnetisationAutoCorrelationOutput << i << ' ' << magAutoCorrelation[i] << '\n';
    	}
+   	
+   	double energy 	   = energyData.mean();
+   	double energyError = energyData.error();
 
+   	double magnetisation 	  = magnetisationData.mean();
+   	double magnetisationError = magnetisationData.error();
 
+   	double susceptibility = 0;
+   	double errorSusceptibility = 0;
 
+   	double heatCapacity = 0;
+   	double errorHeatCapacity = 0;
+
+   	IsingResults results
+   	{
+   		energy, 
+   		energyError, 
+   		magnetisation,
+   		magnetisationError,
+   		susceptibility,
+   		errorSusceptibility,
+   		heatCapacity,
+   		errorHeatCapacity 
+   	};
+
+   	// Output results to file.
+   	resultsOutput << results << '\n';
     // Output results to command line.
-    cout << "Output..." << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "Acceptance Rate = " << right << acceptanceRate << '%' << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "<E> = " << right << energy << " +/- " << energyError << '\n';
-	cout << setw(outputColumnWidth) << setfill(' ') << left << "<M> = " << right << magnetisation << " +/- " << magnetisationError << '\n';
-	//cout << setw(outputColumnWidth) << setfill(' ') << left << " X = " << right << susceptibility << '\n';
-	//cout << setw(outputColumnWidth) << setfill(' ') << left << " C = " << right << heatCapacity << '\n';
+    cout << results << '\n';
     cout << setw(outputColumnWidth) << setfill(' ') << left << "Time take to execute(s) =    " << right << timer.elapsed() << endl << endl;
     return 0;
 }
