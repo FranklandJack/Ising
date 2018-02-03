@@ -2,12 +2,11 @@
 #define makeDirectory_hpp
 
 #include <boost/filesystem.hpp> 
-#include <ctime>
 #include <string>
-#include <chrono>
 #include <sstream>
+#include "getTimeStamp.hpp"
 
-std::string makeDirectory();
+std::string makeDirectory(const std::string &name);
 
 #endif /* makeDirectory_hpp */
 

@@ -17,6 +17,12 @@ private:
     int m_size;
 
 public:
+	class IDataFunctor
+	{
+		public:
+			virtual double operator()(const DataArray &data) const = 0;
+	};
+
     DataArray();
     DataArray(int);
 
@@ -32,6 +38,7 @@ public:
     double sum(const IDataFunctor&) const;
 
     double mean() const;
+    double squareMean() const;
     double mean(const IDataFunctor&) const;
 
     double error() const;
@@ -60,6 +67,8 @@ public:
     std::vector<double> autoCorrelation(int,int) const;
 
     void printAutoCorrelation(int,int) const;
+
+    int getSize() const;
 
 };
 

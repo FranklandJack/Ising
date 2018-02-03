@@ -1,9 +1,14 @@
 #include "kawasakiDynamics.hpp"
-bool kawasakiDynamics(SpinLattice2D& spinLattice, std::default_random_engine &generator, double jConstant, double boltzmannConstant, double temperature)
+bool kawasakiDynamics(SpinLattice2D &spinLattice, 
+					  std::default_random_engine &generator, 
+					  double jConstant, 
+					  double boltzmannConstant, 
+					  double temperature)
 {
-	// Create random number genereators for the rows and columns of the spin lattice.
-	std::uniform_int_distribution<int> rowDistriubution(0,spinLattice.getRows()-1);
-	std::uniform_int_distribution<int> colDistriubution(0,spinLattice.getCols()-1);
+	// Create random number generators for the rows and columns of the spin lattice 
+	// constructor range is closed upper bound so need to subtract 1.
+	static std::uniform_int_distribution<int> rowDistriubution(0,spinLattice.getRows()-1);
+	static std::uniform_int_distribution<int> colDistriubution(0,spinLattice.getCols()-1);
 
 	// Generate the coordinates of the first lattice site.
 	int row1 = rowDistriubution(generator);
@@ -24,6 +29,7 @@ bool kawasakiDynamics(SpinLattice2D& spinLattice, std::default_random_engine &ge
 	double energyBefore = spinLattice.sitePairEnergy(row1, col1, row2, col2, jConstant);
 	spinLattice.swap(row1, col1, row2, col2);
 	double energyAfter = spinLattice.sitePairEnergy(row1, col1, row2, col2, jConstant);
+	
 	if(!metropolisUpdate(energyBefore, energyAfter, generator, boltzmannConstant, temperature))
 	{
 		spinLattice.swap(row1, col1, row2, col2);

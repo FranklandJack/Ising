@@ -50,9 +50,10 @@ void SpinBitLattice2D::flip(int row,int col)
 
 void SpinBitLattice2D::swap(int row1,int col1,int row2,int col2)
 {
-	(*this)(row1,col1).flip();
-	(*this)(row2,col2).flip();
-
+	int temp;
+	temp = (*this)(row1,col1);
+	(*this)(row1,col1) = (*this)(row2,col2);
+	(*this)(row2,col2) = temp;
 }
 
 //double SpinBitLattice2D::siteEnergy(int row, int col, double jConsant) const

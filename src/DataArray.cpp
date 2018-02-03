@@ -68,6 +68,19 @@ double DataArray::mean() const
     return sum/m_size;
 }
 
+double DataArray::squareMean() const
+{
+	double sum = 0;
+
+    for(const auto& point : m_data)
+    {
+        sum += point*point;
+    }
+
+    return sum/m_size;
+
+}
+
 double DataArray::mean(const IDataFunctor &fcn) const
 {
     double sum = 0;
@@ -292,4 +305,9 @@ std::vector<double> DataArray::autoCorrelation(int t1, int t2) const
     }
 
     return autoCorrelationData;
+}
+
+int DataArray::getSize() const
+{
+	return m_size;
 }

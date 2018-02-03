@@ -3,5 +3,9 @@
 #include "SpinLattice2D.hpp"
 #include "metropolisUpdate.hpp"
 #include <random>
-bool glauberDynamics(SpinLattice2D&, std::default_random_engine&, double, double, double);
+bool glauberDynamics(SpinLattice2D& lattice, 
+					 std::default_random_engine& generator, 
+					 double jConstant, 
+					 double boltzmannConstant, 
+					 double temperature);
 #endif /* glauberDynamics_hpp */

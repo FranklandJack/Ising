@@ -2,12 +2,18 @@
 #include "SpinLattice2D.hpp" // For the spin lattice.
 #include "glauberDynamics.hpp" // For implementing the Glauber dynamics.
 #include "kawasakiDynamics.hpp" //  For implementing the kawasaki dynamics.
-#include "SpinBitLattice2D.hpp"
-#include "DataArray.hpp"
-#include "makeDirectory.hpp"
-#include "IsingInputParameters.hpp"
-#include "IsingResults.hpp"
-#include <boost/filesystem.hpp> // For constructing directories for file io.
+#include "SpinBitLattice2D.hpp" // For optimised implementation of spin lattice.
+#include "DataArray.hpp" // For holding Monte-Carlo samples and easily calculating their means and errors.
+#include "makeDirectory.hpp" // For creating output directories.
+#include "getTimeStamp.hpp" // For getting a time stamp.
+#include "IsingInputParameters.hpp" // For easily printing input variables to any output stream.
+#include "IsingResults.hpp" // For easily printing numerical results to any output stream.
+#include "HeatCapacity.hpp" // For calculating heat capacity.
+#include "Susceptibility.hpp" // For calculating susceptibility.
+#include "jackKnife.hpp" // For doing jack-knife errors.
+#include "bootstrap.hpp" // For doing bootstrap errors.
+#include "ErrorTypes.hpp" // For dealing with different error methods.
+#include <boost/filesystem.hpp> // For constructing directories for file IO.
 #include <boost/program_options.hpp> // For command line arguments.
 #include <fstream> // For file output.
 #include <chrono> // For timing.
@@ -17,14 +23,15 @@
 #include <iomanip> // For output formatting.
 #include <cmath> // For any maths functions.  
 
-
 namespace po = boost::program_options;
 using namespace std;
+
+
 int main(int argc, char const *argv[])
 {
-    /*************************************************************************************************************************
-     ************************************************* Preparations **********************************************************
-     *************************************************************************************************************************/
+/*************************************************************************************************************************
+************************************************* Preparations **********************************************************
+*************************************************************************************************************************/
 
     // Start the clock so execution time can be calculated. 
     Timer timer;
@@ -35,9 +42,9 @@ int main(int argc, char const *argv[])
     // Create a generator that can be fed to any distribution to produce pseudo random numbers according to that distribution. 
     default_random_engine generator(seed);
 
-    /*************************************************************************************************************************
-     ******************************************************** Input **********************************************************
-     *************************************************************************************************************************/
+/*************************************************************************************************************************
+******************************************************** Input **********************************************************
+*************************************************************************************************************************/
 
     // Input parameters that user will specify.
     int rowCount, columnCount;
@@ -45,11 +52,14 @@ int main(int argc, char const *argv[])
     int burnPeriod;
     int measurementInterval;
     bool (*dynamics)(SpinLattice2D&, default_random_engine&, double, double, double);
+    ErrorTypes errorMethod;
     IsingInputParameters::DynamicsType dynamicsType;
     double jConstant;
     double boltzmannConstant;
     bool outputLattice;
     int sweeps;
+    int autoCorrelationRange;
+    string outputName;
 
     // Set up optional command line argument.
     po::options_description desc("Options for Ising model simulation");
@@ -70,11 +80,19 @@ int main(int argc, char const *argv[])
         // Options 'Boltzmann-constant' and 'B' are equivalent.
         ("Boltzmann-constant",po::value<double>(&boltzmannConstant)->default_value(1),"Boltmann constant.")
         // Option 'sweeps' and 's' are equivalent.
-        ("sweeps,s", po::value<int>(&sweeps)->default_value(100000),"Number of sweeps to generate after the burn period.")
+        ("sweeps,s", po::value<int>(&sweeps)->default_value(10000),"Number of sweeps to generate after the burn period.")
         // Option 'burn-period' and 'b' are equivalent.
-        ("burn-period,b", po::value<int>(&burnPeriod)->default_value(1000), "Number of sweeps before measurement starts.")
+        ("burn-period,b", po::value<int>(&burnPeriod)->default_value(100), "Number of sweeps before measurement starts.")
         // Option 'measurement-interval' and 'i' are equivalent.
         ("measurement-interval,i", po::value<int>(&measurementInterval)->default_value(10), "How many sweeps between measurement are made.")
+        // Option 'autocorrrelation-range' and 'C' are equivalent.
+        ("autocorrelation-range,C", po::value<int>(&autoCorrelationRange)->default_value(100), "Range of autocorrelation function for output.")
+        // Option 'output' and 'o' are equivalent.
+        ("output,o",po::value<std::string>(&outputName)->default_value(getTimeStamp()), "Name of output directory to save output files into.")
+        // 'bootstrap is the only option'
+        ("bootstrap", "Use bootstrap method to calculate errors that depend on second central moment (default)")
+        // 'jackknife only option'
+        ("jackknife","Use jackknife meothod to calculate the errors that depend on second moment (takes precedence if selected")
         // Option 'animate' and 'a' are equivalent.
         ("animate,a","Output the lattice after each sweep for animation.")
         // Option 'help' and 'h' are equivalent.
@@ -113,7 +131,16 @@ int main(int argc, char const *argv[])
     {
     	outputLattice = false;
     }
-    int outputColumnWidth = 30;
+
+    // If the user specified error calculation method then use that.
+    if(vm.count("jackknife"))
+    {
+    	errorMethod = ErrorTypes::JackKnife;
+    }
+    else
+    {
+    	errorMethod = ErrorTypes::Bootstrap;
+    }
 
     // Construct an input parameter object, this just makes printing a lot cleaner.
     IsingInputParameters inputParameters
@@ -126,20 +153,19 @@ int main(int argc, char const *argv[])
 		dynamicsType, 
 		jConstant,
 		boltzmannConstant,
-		sweeps
+		sweeps,
+		autoCorrelationRange
 	};
 
-	/*************************************************************************************************************************
-     ************************************************* Create Output Files ***************************************************
-     *************************************************************************************************************************/
+/*************************************************************************************************************************
+************************************************* Create Output Files ***************************************************
+*************************************************************************************************************************/
+    
+    // Create an output directory from either the default time stamp or the user defined string.
+    makeDirectory(outputName);
 
-	// Create a unique output directory.
-    string outputName(makeDirectory());
-
- 
     //Create output file for the spin array.
     fstream spinsOutput(outputName+"/spins.dat",ios::out);
-    
 
     // Create output file for the input parameters.
     fstream inputParameterOutput(outputName+"/input.txt",ios::out);
@@ -154,7 +180,17 @@ int main(int argc, char const *argv[])
     fstream magnetisationDataOutput(outputName + "/magentistaion.dat", ios::out);
 
     // Create an output file for the autocorrelation of the magnetisation.
-    fstream magnetisationAutoCorrelationOutput(outputName + "/magnetisationAutocorrelation.dat",ios::out);
+    fstream magnetisationAutoCorrelationOutput(outputName + "/magnetisationAutocorrelation.dat", ios::out);
+
+    // Create an output file for the auto-correlation of the energy.
+    fstream energyAutoCorrelationOutput(outputName + "/energyAutoCorrelation.dat", ios::out);
+
+    // Create an output file for initial configuration.
+    fstream initialConfigOutput(outputName + "/initalConfiguration.dat", ios::out);
+
+/*************************************************************************************************************************
+************************************************* Simulation Set Up *****************************************************
+*************************************************************************************************************************/
 
     // Print input parameters to command line.
     cout << inputParameters << '\n';
@@ -162,12 +198,13 @@ int main(int argc, char const *argv[])
     // Print input parameters to an output file 
     inputParameterOutput << inputParameters << '\n';
    
-
-
     // Create the lattice of spins.
     SpinLattice2D spinLattice{rowCount,columnCount};
-    spinLattice.randomise(generator);
 
+    // Randomise lattice
+    spinLattice.randomise(generator);
+    initialConfigOutput << spinLattice;
+    
     // Work out the number of samples we need.
     int totalSamples = sweeps/measurementInterval;
 
@@ -176,6 +213,7 @@ int main(int argc, char const *argv[])
     bool acceptedState{false};
     int totalSites{spinLattice.getCols()*spinLattice.getRows()};
 
+    // Since we know how many samples we will take faster to reserve the space before hand.
     DataArray energyData;
     energyData.reserve(totalSamples);
 
@@ -184,6 +222,10 @@ int main(int argc, char const *argv[])
 
     DataArray scaledMagnetisation;
     scaledMagnetisation.reserve(totalSamples);
+
+/*************************************************************************************************************************
+************************************************* The Simulation ********************************************************
+*************************************************************************************************************************/
 
     // Main loop that actually runs the simulation.
     for(int sweep = 0; sweep < burnPeriod+sweeps; ++sweep)
@@ -196,16 +238,16 @@ int main(int argc, char const *argv[])
     		}
     	}
     		
-    	// If we are out of the burn period and on a measurement sweeps then make any measurements.
-    	if((sweep>burnPeriod) && ((sweep%measurementInterval) == 0))
+    	// If we are out of the burn period and on a measurement sweep then make any measurements.
+    	if((sweep >= burnPeriod) && ((sweep % measurementInterval) == 0))
     	{
     		double sweepEnergy = spinLattice.latticeEnergy(jConstant);
     		energyData.push_back(sweepEnergy);
 
     		double sweepMagnetistation = spinLattice.totalMag();
     		magnetisationData.push_back(sweepMagnetistation);
-    		scaledMagnetisation.push_back(sweepMagnetistation/(spinLattice.getRows()*spinLattice.getCols()));
- 
+ 			
+ 			// If the user plans to animate the configuration then output it here.
     		if(outputLattice)
     		{
     			spinsOutput.seekg(0,ios::beg);
@@ -214,35 +256,66 @@ int main(int argc, char const *argv[])
     	}
     }
 
+/*************************************************************************************************************************
+****************************************************  Analysis **********************************************************
+*************************************************************************************************************************/
+
     // Print the final configuration so it can be reused in future.
     spinsOutput.seekg(0,ios::beg);
     spinsOutput << spinLattice << flush;
 
     // Calculate the acceptance rate.
-    acceptanceRate *= 100.0/(sweeps*totalSites);
+    acceptanceRate *= 100.0 / (sweeps * totalSites);
 
    	// Print data to files.
    	energyDataOutput << energyData;
    	magnetisationDataOutput << magnetisationData;
 
-   	std::vector<double> magAutoCorrelation = scaledMagnetisation.autoCorrelation(0,10);
+   	// Calculate the auto-correlation in the magnetisation and energy and print it.
+   	std::vector<double> magAutoCorrelation = magnetisationData.autoCorrelation(0,autoCorrelationRange);
+   	std::vector<double> engAutoCorrelation = energyData.autoCorrelation(0,autoCorrelationRange);
    	for(int i = 0; i < magAutoCorrelation.size(); ++i)
    	{
    		magnetisationAutoCorrelationOutput << i << ' ' << magAutoCorrelation[i] << '\n';
+   		energyAutoCorrelationOutput << i << ' ' << engAutoCorrelation[i] << '\n';
    	}
-   	
+
+   	// Calculate any numerical values we need and their errors.
    	double energy 	   = energyData.mean();
    	double energyError = energyData.error();
 
    	double magnetisation 	  = magnetisationData.mean();
    	double magnetisationError = magnetisationData.error();
 
-   	double susceptibility = 0;
-   	double errorSusceptibility = 0;
+   	// Construct the susceptibility functor.
+   	Susceptibility susceptibilityFcn(boltzmannConstant, temperature);
 
-   	double heatCapacity = 0;
-   	double errorHeatCapacity = 0;
+   	double susceptibility = susceptibilityFcn(magnetisationData)/(spinLattice.getCols()*spinLattice.getRows());
+	double errorSusceptibility;
+	switch (errorMethod)
+	{
+		case ErrorTypes::Bootstrap : errorSusceptibility = bootstrap(susceptibilityFcn, magnetisationData, generator)/(spinLattice.getCols()*spinLattice.getRows()); 
+						 break;
 
+		case ErrorTypes::JackKnife : errorSusceptibility = jackKnife(susceptibilityFcn, magnetisationData)/(spinLattice.getCols()*spinLattice.getRows());
+						 break;
+	}
+
+   	// Construct the heat capacity functor. 
+   	HeatCapacity heatCapacityFcn(boltzmannConstant, temperature);
+
+   	double heatCapacity = heatCapacityFcn(energyData)/(spinLattice.getCols()*spinLattice.getRows());
+   	double errorHeatCapacity;
+   	switch (errorMethod)
+	{
+		case ErrorTypes::Bootstrap : errorHeatCapacity = bootstrap(heatCapacityFcn, energyData, generator)/(spinLattice.getCols()*spinLattice.getRows()); 
+						 			 break;
+
+		case ErrorTypes::JackKnife : errorHeatCapacity = jackKnife(heatCapacityFcn, energyData)/(spinLattice.getCols()*spinLattice.getRows());
+						 			 break;
+	}
+    
+    // Construct object that holds results.
    	IsingResults results
    	{
    		energy, 
@@ -255,10 +328,19 @@ int main(int argc, char const *argv[])
    		errorHeatCapacity 
    	};
 
+/*************************************************************************************************************************
+***********************************************  Output/Clean Up ********************************************************
+*************************************************************************************************************************/
+
    	// Output results to file.
    	resultsOutput << results << '\n';
+
     // Output results to command line.
     cout << results << '\n';
-    cout << setw(outputColumnWidth) << setfill(' ') << left << "Time take to execute(s) =    " << right << timer.elapsed() << endl << endl;
+
+    // Report how long the program took to execute.
+    cout << setw(30) << setfill(' ') << left << "Time take to execute(s) =    " << right << timer.elapsed() << endl << endl;
+
+
     return 0;
 }

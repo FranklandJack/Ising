@@ -2,6 +2,7 @@
 #define IsingInputParameters_hpp
 #include <iostream>
 #include <iomanip>
+#include "ErrorTypes.hpp"
 class IsingInputParameters 
 {
 public:
@@ -20,6 +21,8 @@ public:
     double jConstant;
     double boltzmannConstant;
     int sweeps;
+    int autoCorrelationRange;
+    ErrorTypes errorType;
 
     friend std::ostream& operator<<(std::ostream& out, const IsingInputParameters& params);
 

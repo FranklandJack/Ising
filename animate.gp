@@ -9,15 +9,10 @@ unset xtics
 unset ytics
 
 # Remove color gradient.
-unset key
-unset surface
-unset colorbox
-
-# For ascpect ratio.
-set size square
+#unset colorbox
 
 # Set spin colours.
-set palette defined (-1 "red", 1 "blue")
+set palette defined (-1 "red", 1 "cyan")
 
 # This stops an error when all spins are the same.
 set cbrange[-1:1]

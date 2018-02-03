@@ -3,5 +3,9 @@
 #include <random>
 #include "SpinLattice2D.hpp"
 #include "metropolisUpdate.hpp"
-bool kawasakiDynamics(SpinLattice2D&,std::default_random_engine&,double, double, double);
+bool kawasakiDynamics(SpinLattice2D &lattice, 
+					  std::default_random_engine& generator,
+					  double jConstant,
+					  double boltzmannConstant,
+					  double temperature);
 #endif /* kawasakiDynamics_hpp */
