@@ -1,4 +1,9 @@
 # If the data files that contain the collated data do not already exists create them.
+rm TE.dat
+rm TM.dat
+rm TX.dat
+rm TC.dat
+
 touch TE.dat
 touch TM.dat
 touch TX.dat
@@ -20,25 +25,22 @@ do
 	printf " " >> TC.dat
  
 	# Get the values and error of E, M, X and C from the results file and append them with the temperature.
-	awk '/^E: /{printf $(NF)}' $results/results.txt >> TE.dat
+	awk '/^E: /{printf $(NF-2)}' $results/results.txt >> TE.dat
 	# Put an empty column in each file.
 	printf " " >> TE.dat
 	awk '/^E: /{print $(NF)}' $results/results.txt >> TE.dat
 
-	# Put an empty column in each file.
-	printf " " >> TE.dat
-
-	awk '/^M: /{printf $(NF-1)}' $results/results.txt >> TM.dat
+	awk '/^M: /{printf $(NF-2)}' $results/results.txt >> TM.dat
 	# Put an empty column in each file.
 	printf " " >> TM.dat
 	awk '/^M: /{print $(NF)}' $results/results.txt >> TM.dat
 
-	awk '/^X: /{printf $(NF-1)}' $results/results.txt >> TX.dat
+	awk '/^X: /{printf $(NF-2)}' $results/results.txt >> TX.dat
 	# Put an empty column in each file.
 	printf " " >> TX.dat
 	awk '/^X: /{print $(NF)}' $results/results.txt >> TX.dat 
 
-	awk '/^C: /{printf $(NF-1)}' $results/results.txt >> TC.dat
+	awk '/^C: /{printf $(NF-2)}' $results/results.txt >> TC.dat
 	# Put an empty column in each file.
 	printf " " >> TC.dat
 	awk '/^C: /{print $(NF)}' $results/results.txt >> TC.dat

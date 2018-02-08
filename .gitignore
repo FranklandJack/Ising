@@ -11,3 +11,6 @@
 
 # Stop any txt files getting commited these will general be the output of runs.
 *.txt
+
+# Stop any images getting uploaded.
+*.png

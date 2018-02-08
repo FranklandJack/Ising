@@ -1,11 +1,11 @@
 #include "bootstrap.hpp"
 
-double bootstrap(const DataArray::IDataFunctor &fcn, const DataArray &data, std::default_random_engine generator, int iterations)
+double bootstrap(const DataArray::IDataFunctor &fcn, const DataArray &data, std::default_random_engine &generator, int iterations)
 {
 	// ``Uniform'' distribution to sample from the data.
 	std::uniform_int_distribution<int> distribution(0,data.getSize()-1);
 
-	// DataArray to hold the re-sampled estimates on the function.
+	// DataArray to hold the re-sampled estimates on the function error.
 	DataArray resampledFncValues;
 	resampledFncValues.reserve(iterations);
 
@@ -15,7 +15,6 @@ double bootstrap(const DataArray::IDataFunctor &fcn, const DataArray &data, std:
 		// Create a data array to hold each n samples.
 		DataArray tempData;
 		tempData.reserve(data.getSize());
-
 
 		// Pick randomly n measurements.
 		for(int j = 0; j < data.getSize(); ++j)

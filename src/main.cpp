@@ -12,7 +12,6 @@
 #include "Susceptibility.hpp" // For calculating susceptibility.
 #include "jackKnife.hpp" // For doing jack-knife errors.
 #include "bootstrap.hpp" // For doing bootstrap errors.
-#include "ErrorTypes.hpp" // For dealing with different error methods.
 #include <boost/filesystem.hpp> // For constructing directories for file IO.
 #include <boost/program_options.hpp> // For command line arguments.
 #include <fstream> // For file output.
@@ -20,7 +19,6 @@
 #include <ctime>  // For timing.
 #include <random> // For generating random numbers.
 #include "Timer.hpp" // For custom timer. 
-#include <iomanip> // For output formatting.
 #include <cmath> // For any maths functions.  
 
 namespace po = boost::program_options;
@@ -52,7 +50,7 @@ int main(int argc, char const *argv[])
     int burnPeriod;
     int measurementInterval;
     bool (*dynamics)(SpinLattice2D&, default_random_engine&, double, double, double);
-    ErrorTypes errorMethod;
+    IsingInputParameters::ErrorTypes errorMethod;
     IsingInputParameters::DynamicsType dynamicsType;
     double jConstant;
     double boltzmannConstant;
@@ -121,25 +119,21 @@ int main(int argc, char const *argv[])
     	dynamicsType = IsingInputParameters::Kawasaki;
     }
 
+    // By default don't output the lattice
+    outputLattice = false;
     // If the user specified lattice output then make sure it happens. 
     if(vm.count("animate"))
     {
     	outputLattice = true;
     }
-    // By default don't output the lattice
-    else
-    {
-    	outputLattice = false;
-    }
+    
+    // By defualt use bootstrap.
+    errorMethod = IsingInputParameters::Bootstrap;
 
-    // If the user specified error calculation method then use that.
+    // If the user specified error calculation method then use that
     if(vm.count("jackknife"))
     {
-    	errorMethod = ErrorTypes::JackKnife;
-    }
-    else
-    {
-    	errorMethod = ErrorTypes::Bootstrap;
+    	errorMethod = IsingInputParameters::JackKnife;
     }
 
     // Construct an input parameter object, this just makes printing a lot cleaner.
@@ -154,7 +148,8 @@ int main(int argc, char const *argv[])
 		jConstant,
 		boltzmannConstant,
 		sweeps,
-		autoCorrelationRange
+		autoCorrelationRange,
+        errorMethod
 	};
 
 /*************************************************************************************************************************
@@ -199,19 +194,22 @@ int main(int argc, char const *argv[])
     inputParameterOutput << inputParameters << '\n';
    
     // Create the lattice of spins.
-    SpinLattice2D spinLattice{rowCount,columnCount};
+    SpinLattice2D spinLattice(rowCount,columnCount);
 
-    // Randomise lattice
-    spinLattice.randomise(generator);
+    // Randomise lattice if Kawasaki dynamics is being used, otherwise keep it aligned.
+    if(vm.count("kawasaki-dynamics"))
+    {
+        spinLattice.randomise(generator);
+    }
     initialConfigOutput << spinLattice;
     
     // Work out the number of samples we need.
     int totalSamples = sweeps/measurementInterval;
 
     // Create the output variables that will hold the Monte-Carlo estimates.
-    double acceptanceRate{0};
-    bool acceptedState{false};
-    int totalSites{spinLattice.getCols()*spinLattice.getRows()};
+    double acceptanceRate = 0;
+    bool acceptedState = false;
+    int totalSites = spinLattice.getSize();
 
     // Since we know how many samples we will take faster to reserve the space before hand.
     DataArray energyData;
@@ -245,15 +243,15 @@ int main(int argc, char const *argv[])
     		energyData.push_back(sweepEnergy);
 
     		double sweepMagnetistation = spinLattice.totalMag();
-    		magnetisationData.push_back(sweepMagnetistation);
- 			
- 			// If the user plans to animate the configuration then output it here.
-    		if(outputLattice)
-    		{
-    			spinsOutput.seekg(0,ios::beg);
-    			spinsOutput << spinLattice << flush;
-    		}
+    		magnetisationData.push_back(abs(sweepMagnetistation));	
     	}
+
+        // If the user plans to animate the configuration then output it here.
+        if(outputLattice && ((sweep % measurementInterval) == 0))
+        {
+            spinsOutput.seekg(0,ios::beg);
+            spinsOutput << spinLattice << flush;
+        }
     }
 
 /*************************************************************************************************************************
@@ -290,28 +288,28 @@ int main(int argc, char const *argv[])
    	// Construct the susceptibility functor.
    	Susceptibility susceptibilityFcn(boltzmannConstant, temperature);
 
-   	double susceptibility = susceptibilityFcn(magnetisationData)/(spinLattice.getCols()*spinLattice.getRows());
+   	double susceptibility = susceptibilityFcn(magnetisationData)/(spinLattice.getSize());
 	double errorSusceptibility;
 	switch (errorMethod)
 	{
-		case ErrorTypes::Bootstrap : errorSusceptibility = bootstrap(susceptibilityFcn, magnetisationData, generator)/(spinLattice.getCols()*spinLattice.getRows()); 
+		case IsingInputParameters::Bootstrap : errorSusceptibility = bootstrap(susceptibilityFcn, magnetisationData, generator)/(spinLattice.getSize()); 
 						 break;
 
-		case ErrorTypes::JackKnife : errorSusceptibility = jackKnife(susceptibilityFcn, magnetisationData)/(spinLattice.getCols()*spinLattice.getRows());
+		case IsingInputParameters::JackKnife : errorSusceptibility = jackKnife(susceptibilityFcn, magnetisationData)/(spinLattice.getSize());
 						 break;
 	}
 
    	// Construct the heat capacity functor. 
    	HeatCapacity heatCapacityFcn(boltzmannConstant, temperature);
 
-   	double heatCapacity = heatCapacityFcn(energyData)/(spinLattice.getCols()*spinLattice.getRows());
+   	double heatCapacity = heatCapacityFcn(energyData)/(spinLattice.getSize());
    	double errorHeatCapacity;
    	switch (errorMethod)
 	{
-		case ErrorTypes::Bootstrap : errorHeatCapacity = bootstrap(heatCapacityFcn, energyData, generator)/(spinLattice.getCols()*spinLattice.getRows()); 
+		case IsingInputParameters::Bootstrap : errorHeatCapacity = bootstrap(heatCapacityFcn, energyData, generator)/(spinLattice.getSize()); 
 						 			 break;
 
-		case ErrorTypes::JackKnife : errorHeatCapacity = jackKnife(heatCapacityFcn, energyData)/(spinLattice.getCols()*spinLattice.getRows());
+		case IsingInputParameters::JackKnife : errorHeatCapacity = jackKnife(heatCapacityFcn, energyData)/(spinLattice.getSize());
 						 			 break;
 	}
     

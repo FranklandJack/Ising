@@ -14,6 +14,6 @@ std::ostream& operator<<(std::ostream& out, const IsingInputParameters& params)
 	out << std::setw(outputColumnWidth) << std::setfill(' ') << std::left << "Sweeps: " << std::right << params.sweeps<< '\n';
     out << std::setw(outputColumnWidth) << std::setfill(' ') << std::left << "Measurement-Interval: " << std::right << params.measurementInterval << '\n';
     out << std::setw(outputColumnWidth) << std::setfill(' ') << std::left << "Autocorrelation-Range: " << std::right << params.autoCorrelationRange << '\n';
-    out << std::setw(outputColumnWidth) << std::setfill(' ') << std::left << "Error-Method-Used: " << std::right << ((params.errorType==ErrorTypes::Bootstrap) ? "Bootstrap" : "Jack-Knife") << '\n';
+    out << std::setw(outputColumnWidth) << std::setfill(' ') << std::left << "Error-Method-Used: " << std::right << ((params.errorType==IsingInputParameters::Bootstrap) ? "Bootstrap" : "Jack-Knife") << '\n';
     return out;
 }

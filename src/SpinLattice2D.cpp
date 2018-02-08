@@ -43,10 +43,7 @@ std::ostream& operator<<(std::ostream& out, const SpinLattice2D& spinLattice)
 		{
 			out << std::showpos << spinLattice(row,col) << ' ';
 		}
-		if(row != spinLattice.m_rowCount-1)
-		{
-			out << '\n';
-		}
+		out << '\n';
 	}
 	return out;
 }
@@ -71,7 +68,7 @@ double SpinLattice2D::siteEnergy(int row, int col, double jConstant) const
 	sum += (*this)(row,col) * (*this)(row-1,col);
 	sum += (*this)(row,col) * (*this)(row,col+1);
 	sum += (*this)(row,col) * (*this)(row,col-1);
-	return -1.0 * sum * jConstant;
+	return -1.0 * jConstant * sum;
 }
 
 double SpinLattice2D::sitePairEnergy(int row1, int col1, int row2, int col2, const double jConstant) const
@@ -133,6 +130,11 @@ int SpinLattice2D::getRows() const
 int SpinLattice2D::getCols() const
 {
 	return m_colCount;
+}
+
+int SpinLattice2D::getSize() const
+{
+	return m_rowCount * m_colCount;
 }
 
 bool SpinLattice2D::nearestNeighbours(int row1, int col1, int row2, int col2) const

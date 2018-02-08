@@ -42,7 +42,7 @@
 #$ -l h_rt=0:5:00
 
 mkdir -p data # This makes sure the data directory can be written to
-./ising -t ${1:-1000000} -o data/${2:-pi-1e6}-job${SGE_TASK_ID}.dat
+./ising -T ${1:-1000000} -o ${2:-pi-1e6}-job${SGE_TASK_ID}.dat
 
 # The ${n:-default} syntax looks for the n'th argument supplied to the
 # script, and substitutes default if this is empty.

@@ -7,8 +7,8 @@ bool kawasakiDynamics(SpinLattice2D &spinLattice,
 {
 	// Create random number generators for the rows and columns of the spin lattice 
 	// constructor range is closed upper bound so need to subtract 1.
-	static std::uniform_int_distribution<int> rowDistriubution(0,spinLattice.getRows()-1);
-	static std::uniform_int_distribution<int> colDistriubution(0,spinLattice.getCols()-1);
+	std::uniform_int_distribution<int> rowDistriubution(0,spinLattice.getRows()-1);
+	std::uniform_int_distribution<int> colDistriubution(0,spinLattice.getCols()-1);
 
 	// Generate the coordinates of the first lattice site.
 	int row1 = rowDistriubution(generator);
@@ -22,20 +22,28 @@ bool kawasakiDynamics(SpinLattice2D &spinLattice,
 	{
 		row2 = rowDistriubution(generator);
 		col2 = colDistriubution(generator);
-	} while(row1==row2 || col1==col2);
+	} while(row1==row2 && col1==col2);
 
-	// Forward declare the energies since they will need to be calculate in different ways depending on choice
-	// of rows and columns.
+	// Calculate energy before swap.
 	double energyBefore = spinLattice.sitePairEnergy(row1, col1, row2, col2, jConstant);
+
+	// Swap the spins.
 	spinLattice.swap(row1, col1, row2, col2);
+
+	// Calculate the energy after the swap.
 	double energyAfter = spinLattice.sitePairEnergy(row1, col1, row2, col2, jConstant);
 	
+	// Do the metropolis update.
 	if(!metropolisUpdate(energyBefore, energyAfter, generator, boltzmannConstant, temperature))
 	{
+		// If the update fails make sure we swap the spins back.
 		spinLattice.swap(row1, col1, row2, col2);
+
+		// And tell caller the update failed.
 		return false;
 	}
 
+	// If successful no need to swap spins back.
 	return true;
 	
 }

@@ -125,6 +125,12 @@ class SpinLattice2D
 		int getRows() const;
 
 		/**
+		 *\brief Getter method for size of lattice = #columns * #rows
+		 *\return integer value representing size of lattice.
+		 */
+		int getSize() const;
+
+		/**
 		 *\brief Calculates whether two sites are nearest neighbours.
 		 *
 		 * This method takes into account periodic boundary conditions.
