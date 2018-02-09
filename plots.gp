@@ -3,7 +3,7 @@ set xlabel "Temperature"
 
 set ylabel "Specific Heat"
 set output "TC.png"
-p 'TC.dat' w errorbars
+p 'TC.dat' w errorbars 
 
 set ylabel "Energy"
 set output "TE.png"

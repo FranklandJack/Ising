@@ -10,7 +10,7 @@ std::string makeDirectory(const std::string &name)
 	for(int i = 2; boost::filesystem::exists(outPath) && i < 100; ++i)
 	{
 	    std::stringstream ss;
-	    ss << outPath << "(" << i << ")";
+	    ss << outPath << i;
 	    outPath = ss.str();
 	}
 

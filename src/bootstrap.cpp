@@ -2,7 +2,8 @@
 
 double bootstrap(const DataArray::IDataFunctor &fcn, const DataArray &data, std::default_random_engine &generator, int iterations)
 {
-	// ``Uniform'' distribution to sample from the data.
+	// ``Uniform'' distribution to sample from the data. Arguments are closed interval so need to subtract 1
+	// in order to safely index the array.
 	std::uniform_int_distribution<int> distribution(0,data.getSize()-1);
 
 	// DataArray to hold the re-sampled estimates on the function error.

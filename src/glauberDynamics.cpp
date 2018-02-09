@@ -5,7 +5,11 @@ bool glauberDynamics(SpinLattice2D& spinLattice,
 					 double boltzmannConstant, 
 					 double temperature)
 {
-	// Create distributions to get a random spin.
+	/*
+	 * Create distributions to get a random spin.
+	 * The arguments in the constructor give a closed interval so we have to subtract 1 off the maximum 
+	 * in order to index an array.
+	 */
 	std::uniform_int_distribution<int> rowDistriubution(0,spinLattice.getRows()-1);
 	std::uniform_int_distribution<int> colDistriubution(0,spinLattice.getCols()-1);
 

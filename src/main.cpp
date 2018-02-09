@@ -196,19 +196,27 @@ int main(int argc, char const *argv[])
     // Create the lattice of spins.
     SpinLattice2D spinLattice(rowCount,columnCount);
 
-    // Randomise lattice if Kawasaki dynamics is being used, otherwise keep it aligned.
+    // Set lattice if Kawasaki dynamics is being used, otherwise keep it aligned.
     if(vm.count("kawasaki-dynamics"))
     {
-        spinLattice.randomise(generator);
+        // If the temperature is low we can set the lattice in the ground state.
+        if(temperature < 1.5)
+        {
+            spinLattice.setEvenSpins();
+        }
+
+        // Otherwise have it random.
+        else
+        {
+            spinLattice.randomise(generator);
+        }
     }
     initialConfigOutput << spinLattice;
     
     // Work out the number of samples we need.
     int totalSamples = sweeps/measurementInterval;
 
-    // Create the output variables that will hold the Monte-Carlo estimates.
-    double acceptanceRate = 0;
-    bool acceptedState = false;
+    // Create the output variables that will hold the Monte-Carlo estimates. 
     int totalSites = spinLattice.getSize();
 
     // Since we know how many samples we will take faster to reserve the space before hand.
@@ -230,10 +238,7 @@ int main(int argc, char const *argv[])
     {
     	for(int site = 0; site < totalSites; ++site)
     	{
-			if(dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature) && sweep > burnPeriod)
-    		{
-    			acceptanceRate += 1;
-    		}
+            dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature);
     	}
     		
     	// If we are out of the burn period and on a measurement sweep then make any measurements.
@@ -261,9 +266,7 @@ int main(int argc, char const *argv[])
     // Print the final configuration so it can be reused in future.
     spinsOutput.seekg(0,ios::beg);
     spinsOutput << spinLattice << flush;
-
-    // Calculate the acceptance rate.
-    acceptanceRate *= 100.0 / (sweeps * totalSites);
+    
 
    	// Print data to files.
    	energyDataOutput << energyData;
@@ -338,7 +341,6 @@ int main(int argc, char const *argv[])
 
     // Report how long the program took to execute.
     cout << setw(30) << setfill(' ') << left << "Time take to execute(s) =    " << right << timer.elapsed() << endl << endl;
-
 
     return 0;
 }

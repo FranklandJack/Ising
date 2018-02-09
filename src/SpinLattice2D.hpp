@@ -49,6 +49,12 @@ class SpinLattice2D
 		void randomise(std::default_random_engine &generator);
 
 		/**
+		 *\brief Sets even proportions of each spin in blocks.
+		 */
+		void setEvenSpins();
+
+
+		/**
 		 *\brief Prints array as 2D matrix of +1 spin up and -1 spin down.
 		 *\param out an output stream reference to stream to.
 		 *\param spinLattice a const SpinLattice2D reference to be printed.

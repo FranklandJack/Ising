@@ -35,6 +35,22 @@ void SpinLattice2D::randomise(std::default_random_engine &generator)
 	}
 }
 
+void SpinLattice2D::setEvenSpins()
+{
+	// Set first half of the spins up.
+	for(int i = 0; i < m_spinMatrix.size()/2; ++i)
+	{
+		m_spinMatrix[i] = 1;
+	}
+
+	// Set second half of spins down.
+	for(int i = m_spinMatrix.size()/2; i < m_spinMatrix.size(); ++i)
+	{
+		m_spinMatrix[i] = -1;
+	}
+
+}
+
 std::ostream& operator<<(std::ostream& out, const SpinLattice2D& spinLattice)
 {
 	for(int row = 0; row < spinLattice.m_rowCount; ++row)
@@ -56,7 +72,7 @@ void SpinLattice2D::flip(int row, int col)
 
 void SpinLattice2D::swap(int row1, int col1, int row2, int col2)
 {
-	std::swap((*this)(row1,col1),(*this)(row2,col2));
+	std::swap((*this)(row1,col1), (*this)(row2,col2));
 }
 
 double SpinLattice2D::siteEnergy(int row, int col, double jConstant) const 
@@ -64,10 +80,10 @@ double SpinLattice2D::siteEnergy(int row, int col, double jConstant) const
 	// For a single site we just sum over the nearest neighbours
 	// The operator() overload takes into account boundary conditions.
 	double sum = 0;
-	sum += (*this)(row,col) * (*this)(row+1,col);
-	sum += (*this)(row,col) * (*this)(row-1,col);
-	sum += (*this)(row,col) * (*this)(row,col+1);
-	sum += (*this)(row,col) * (*this)(row,col-1);
+	sum += (*this)(row, col) * (*this)(row+1, col);
+	sum += (*this)(row, col) * (*this)(row-1, col);
+	sum += (*this)(row, col) * (*this)(row, col+1);
+	sum += (*this)(row, col) * (*this)(row, col-1);
 	return -1.0 * jConstant * sum;
 }
 
@@ -89,7 +105,7 @@ double SpinLattice2D::sitePairEnergy(int row1, int col1, int row2, int col2, con
 		 * over or under count is just the product of the spins and the jConstant parameter.
 		 */
 		double overCount = -1.0 * (*this)(row1,col1) * (*this)(row2,col2);
-	 	return siteEnergy(row1, col1, jConstant)+siteEnergy(row2, col2, jConstant) - overCount;
+	 	return siteEnergy(row1, col1, jConstant) + siteEnergy(row2, col2, jConstant) - overCount;
 
 
 	}
@@ -98,7 +114,7 @@ double SpinLattice2D::sitePairEnergy(int row1, int col1, int row2, int col2, con
 	// so there total energy is just the sum of their individual energies.
 	else
 	{
-		return siteEnergy(row1, col1, jConstant)+siteEnergy(row2, col2, jConstant);
+		return siteEnergy(row1, col1, jConstant) + siteEnergy(row2, col2, jConstant);
 	}
 
 }
@@ -114,8 +130,8 @@ double SpinLattice2D::latticeEnergy(double jConstant) const
 	{
 		for(unsigned col = 0; col < m_colCount; ++col)
 		{
-			sum += (*this)(row,col) * (*this)(row,col+1);
-			sum += (*this)(row,col) * (*this)(row+1,col);
+			sum += (*this)(row, col) * (*this)(row, col+1);
+			sum += (*this)(row, col) * (*this)(row+1, col);
 		}
 	}
 
@@ -141,7 +157,7 @@ bool SpinLattice2D::nearestNeighbours(int row1, int col1, int row2, int col2) co
 {
 	// Need to check above/below and right/left including the periodic boundary conditions.
 
-	// Check to above.
+	// Check above and ``over the bottom'' of the lattice.
 	if( (row1 == (row2+1)%m_rowCount) && (col1 == col2) ) { return true;}
 
 	// Check below.
