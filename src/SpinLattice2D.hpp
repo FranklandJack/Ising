@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <map>
 
 /**
  *\file 
@@ -16,6 +17,19 @@
  */
 class SpinLattice2D
 {
+public:
+	/**
+	 *\enum
+	 *\brief Enumeration representing possible spins
+	 */
+	enum Spin
+	{
+		Up,
+		Down,
+		MAXSPINS,
+	};
+	/// static array that gives the values of the spins and acts as a map.
+	static const int spinValues[MAXSPINS];
 	private:
 		/**
 		 *\brief Member variable integer to represent the number of columns.
@@ -31,7 +45,7 @@ class SpinLattice2D
 		 *\brief Member variable array to represent the spins in the lattice. 
 		 * 1D implementation for efficient memory use.
 		 */
-		std::vector<int> m_spinMatrix;
+		std::vector<Spin> m_spinMatrix;
 
 	public:
 
@@ -75,7 +89,7 @@ class SpinLattice2D
 		 *\param row2 row of second spin to be swapped.
 		 *\param col2 column of second spin to be swapped.
 		 */
-		void swap(int,int,int,int);
+		void swap(int row1, int col1, int row2, int col2);
 
 		/**
 		 *\brief Calculates energy associated with single lattice site.
@@ -160,7 +174,7 @@ class SpinLattice2D
 		 *\param col column index of site.
 		 *\return reference to spin stored at site so called can use it or set it.
 		 */
-		int& operator()(int row, int col);
+		Spin& operator()(int row, int col);
 
 		/** 
 		 *\brief constant version of non-constant counterpart for use with constant SpinLattice2D object.
@@ -171,7 +185,7 @@ class SpinLattice2D
 		 *\param col column index of site.
 		 *\return constant reference to spin stored at site so called can use it only.
 		 */
-		const int& operator()(int,int) const;
+		const Spin& operator()(int row, int col) const;
 
 		/**
 		 *\brief Calculates total magnetisation of the spin lattice.
