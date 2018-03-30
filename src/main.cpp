@@ -121,6 +121,7 @@ int main(int argc, char const *argv[])
 
     // By default don't output the lattice
     outputLattice = false;
+    
     // If the user specified lattice output then make sure it happens. 
     if(vm.count("animate"))
     {
@@ -236,6 +237,7 @@ int main(int argc, char const *argv[])
     // Main loop that actually runs the simulation.
     for(int sweep = 0; sweep < burnPeriod+sweeps; ++sweep)
     {
+        // 1 sweep = #col x #row = total #sites proposed flips.
     	for(int site = 0; site < totalSites; ++site)
     	{
             dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature);
