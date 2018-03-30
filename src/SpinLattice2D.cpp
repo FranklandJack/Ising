@@ -1,8 +1,8 @@
 #include "SpinLattice2D.hpp"
 const int SpinLattice2D::spinValues[SpinLattice2D::MAXSPINS] = {+1,-1};
 
-SpinLattice2D::SpinLattice2D(int rows, int cols): 	m_rowCount{rows}, 
-													m_colCount{cols}, 
+SpinLattice2D::SpinLattice2D(int rows, int cols): 	m_rowCount{rows},
+													m_colCount{cols},
 													m_spinMatrix(m_rowCount*m_colCount,SpinLattice2D::Up)
 {
 }
@@ -33,10 +33,10 @@ void SpinLattice2D::randomise(std::default_random_engine &generator)
 {
 	// Create a ``uniform'' integer distribution for generating the spins. By using the MAXSPINS
 	// value this distribution will automatically get updated if we add any more spins in the future.
-	static std::uniform_int_distribution<SpinLattice2D::Spin> distribution(SpinLattice2D::MAXSPINS);
+	static std::uniform_int_distribution<int> distribution(SpinLattice2D::MAXSPINS);
 	for(auto& spin : m_spinMatrix)
 	{
-		spin = distribution(generator);
+		spin = static_cast<SpinLattice2D::Spin>(distribution(generator));
 	}
 }
 
@@ -71,7 +71,7 @@ std::ostream& operator<<(std::ostream& out, const SpinLattice2D& spinLattice)
 
 void SpinLattice2D::flip(int row, int col)
 {
-	
+
 	if((*this)(row, col) == SpinLattice2D::Up)
 	{
 		(*this)(row, col) = SpinLattice2D::Down;
@@ -87,7 +87,7 @@ void SpinLattice2D::swap(int row1, int col1, int row2, int col2)
 	std::swap((*this)(row1,col1), (*this)(row2,col2));
 }
 
-double SpinLattice2D::siteEnergy(int row, int col, double jConstant) const 
+double SpinLattice2D::siteEnergy(int row, int col, double jConstant) const
 {
 	// For a single site we just sum over the nearest neighbours
 	// The operator() overload takes into account boundary conditions.
@@ -112,8 +112,8 @@ double SpinLattice2D::sitePairEnergy(int row1, int col1, int row2, int col2, con
 	// Next check whether sites are nearest neighbours, in which case we need to account for over-counting.
 	else if((*this).nearestNeighbours(row1, col1, row2, col2))
 	{
-		/* The only connection that contributes to the over-counting is the connection that connects the sites 
-		 * directly, therefore we are over or under-counting the energy by one unit. The amount by which we 
+		/* The only connection that contributes to the over-counting is the connection that connects the sites
+		 * directly, therefore we are over or under-counting the energy by one unit. The amount by which we
 		 * over or under count is just the product of the spins and the jConstant parameter.
 		 */
 		double overCount = -1.0 * SpinLattice2D::spinValues[(*this)(row1,col1)] * SpinLattice2D::spinValues[(*this)(row2,col2)];
