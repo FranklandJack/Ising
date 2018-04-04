@@ -10,4 +10,3 @@
 std::string getTimeStamp();
 
 #endif /* getTimeStamp */
-
