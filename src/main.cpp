@@ -18,8 +18,8 @@
 #include <chrono> // For timing.
 #include <ctime>  // For timing.
 #include <random> // For generating random numbers.
-#include "Timer.hpp" // For custom timer. 
-#include <cmath> // For any maths functions.  
+#include "Timer.hpp" // For custom timer.
+#include <cmath> // For any maths functions.
 
 namespace po = boost::program_options;
 using namespace std;
@@ -31,13 +31,13 @@ int main(int argc, char const *argv[])
 ************************************************* Preparations **********************************************************
 *************************************************************************************************************************/
 
-    // Start the clock so execution time can be calculated. 
+    // Start the clock so execution time can be calculated.
     Timer timer;
 
     // Seed the pseudo random number generator using the system clock.
     unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
 
-    // Create a generator that can be fed to any distribution to produce pseudo random numbers according to that distribution. 
+    // Create a generator that can be fed to any distribution to produce pseudo random numbers according to that distribution.
     default_random_engine generator(seed);
 
 /*************************************************************************************************************************
@@ -121,13 +121,13 @@ int main(int argc, char const *argv[])
 
     // By default don't output the lattice
     outputLattice = false;
-    
-    // If the user specified lattice output then make sure it happens. 
+
+    // If the user specified lattice output then make sure it happens.
     if(vm.count("animate"))
     {
     	outputLattice = true;
     }
-    
+
     // By defualt use bootstrap.
     errorMethod = IsingInputParameters::Bootstrap;
 
@@ -140,12 +140,12 @@ int main(int argc, char const *argv[])
     // Construct an input parameter object, this just makes printing a lot cleaner.
     IsingInputParameters inputParameters
     {
-    	rowCount, 
-    	columnCount, 
-    	temperature, 
-    	burnPeriod, 
-		measurementInterval, 
-		dynamicsType, 
+    	rowCount,
+    	columnCount,
+    	temperature,
+    	burnPeriod,
+		measurementInterval,
+		dynamicsType,
 		jConstant,
 		boltzmannConstant,
 		sweeps,
@@ -156,7 +156,7 @@ int main(int argc, char const *argv[])
 /*************************************************************************************************************************
 ************************************************* Create Output Files ***************************************************
 *************************************************************************************************************************/
-    
+
     // Create an output directory from either the default time stamp or the user defined string.
     makeDirectory(outputName);
 
@@ -169,7 +169,7 @@ int main(int argc, char const *argv[])
     // Create an output file for the output values.
     fstream resultsOutput(outputName+"/results.txt",ios::out);
 
-    // Create an output file for the energy. 
+    // Create an output file for the energy.
     fstream energyDataOutput(outputName+"/energy.dat",ios::out);
 
     // Create an output file for the magnetisation.
@@ -191,9 +191,9 @@ int main(int argc, char const *argv[])
     // Print input parameters to command line.
     cout << inputParameters << '\n';
 
-    // Print input parameters to an output file 
+    // Print input parameters to an output file
     inputParameterOutput << inputParameters << '\n';
-   
+
     // Create the lattice of spins.
     SpinLattice2D spinLattice(rowCount,columnCount);
 
@@ -213,11 +213,11 @@ int main(int argc, char const *argv[])
         }
     }
     initialConfigOutput << spinLattice;
-    
+
     // Work out the number of samples we need.
     int totalSamples = sweeps/measurementInterval;
 
-    // Create the output variables that will hold the Monte-Carlo estimates. 
+    // Create the output variables that will hold the Monte-Carlo estimates.
     int totalSites = spinLattice.getSize();
 
     // Since we know how many samples we will take faster to reserve the space before hand.
@@ -242,7 +242,7 @@ int main(int argc, char const *argv[])
     	{
             dynamics(spinLattice, generator, jConstant, boltzmannConstant, temperature);
     	}
-    		
+
     	// If we are out of the burn period and on a measurement sweep then make any measurements.
     	if((sweep >= burnPeriod) && ((sweep % measurementInterval) == 0))
     	{
@@ -250,7 +250,7 @@ int main(int argc, char const *argv[])
     		energyData.push_back(sweepEnergy);
 
     		double sweepMagnetistation = spinLattice.totalMag();
-    		magnetisationData.push_back(abs(sweepMagnetistation));	
+    		magnetisationData.push_back(abs(sweepMagnetistation));
     	}
 
         // If the user plans to animate the configuration then output it here.
@@ -268,7 +268,7 @@ int main(int argc, char const *argv[])
     // Print the final configuration so it can be reused in future.
     spinsOutput.seekg(0,ios::beg);
     spinsOutput << spinLattice << flush;
-    
+
 
    	// Print data to files.
    	energyDataOutput << energyData;
@@ -297,38 +297,38 @@ int main(int argc, char const *argv[])
 	double errorSusceptibility;
 	switch (errorMethod)
 	{
-		case IsingInputParameters::Bootstrap : errorSusceptibility = bootstrap(susceptibilityFcn, magnetisationData, generator)/(spinLattice.getSize()); 
+		case IsingInputParameters::Bootstrap : errorSusceptibility = bootstrap(susceptibilityFcn, magnetisationData, generator)/(spinLattice.getSize());
 						 break;
 
 		case IsingInputParameters::JackKnife : errorSusceptibility = jackKnife(susceptibilityFcn, magnetisationData)/(spinLattice.getSize());
 						 break;
 	}
 
-   	// Construct the heat capacity functor. 
+   	// Construct the heat capacity functor.
    	HeatCapacity heatCapacityFcn(boltzmannConstant, temperature);
 
    	double heatCapacity = heatCapacityFcn(energyData)/(spinLattice.getSize());
    	double errorHeatCapacity;
    	switch (errorMethod)
 	{
-		case IsingInputParameters::Bootstrap : errorHeatCapacity = bootstrap(heatCapacityFcn, energyData, generator)/(spinLattice.getSize()); 
+		case IsingInputParameters::Bootstrap : errorHeatCapacity = bootstrap(heatCapacityFcn, energyData, generator)/(spinLattice.getSize());
 						 			 break;
 
 		case IsingInputParameters::JackKnife : errorHeatCapacity = jackKnife(heatCapacityFcn, energyData)/(spinLattice.getSize());
 						 			 break;
 	}
-    
+
     // Construct object that holds results.
    	IsingResults results
    	{
-   		energy, 
-   		energyError, 
+   		energy,
+   		energyError,
    		magnetisation,
    		magnetisationError,
    		susceptibility,
    		errorSusceptibility,
    		heatCapacity,
-   		errorHeatCapacity 
+   		errorHeatCapacity
    	};
 
 /*************************************************************************************************************************

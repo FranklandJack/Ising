@@ -33,7 +33,8 @@ void SpinLattice2D::randomise(std::default_random_engine &generator)
 {
 	// Create a ``uniform'' integer distribution for generating the spins. By using the MAXSPINS
 	// value this distribution will automatically get updated if we add any more spins in the future.
-	static std::uniform_int_distribution<int> distribution(static_cast<int>(SpinLattice2D::MAXSPINS));
+	// Need to subtract 1 to account for fact range is inclusive and indexes start at 0.
+	static std::uniform_int_distribution<int> distribution(0,static_cast<int>(SpinLattice2D::MAXSPINS)-1);
 	for(auto& spin : m_spinMatrix)
 	{
 		spin = static_cast<SpinLattice2D::Spin>(distribution(generator));
