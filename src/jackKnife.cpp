@@ -2,7 +2,7 @@
 #include <iostream>
 
 double jackKnife(const DataArray::IDataFunctor &fcn, const DataArray &data)
-{	
+{
 	// Create data array to hold the values of the function on the reduced sample sets.
 	DataArray reducedFcnValues;
 	reducedFcnValues.reserve(data.getSize());
@@ -32,7 +32,7 @@ double jackKnife(const DataArray::IDataFunctor &fcn, const DataArray &data)
 	// Calculate error according to the formula for jack-knife.
 	double mean 	  = reducedFcnValues.mean();
 	double squareMean = reducedFcnValues.squareMean();
-	double error 	  = sqrt((squareMean - mean * mean) * data.getSize());
+	double error 	  = std::sqrt((squareMean - mean * mean) * data.getSize());
 
 	return error;
 

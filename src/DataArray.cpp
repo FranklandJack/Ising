@@ -17,7 +17,7 @@ const double& DataArray::operator[](int index) const
     return m_data[index];
 }
 
-void DataArray::push_back(double point) 
+void DataArray::push_back(double point)
 {
     m_data.push_back(point);
     m_size++;
@@ -84,7 +84,7 @@ double DataArray::error() const
     double meanSquared = sum / m_size;
     double mean        = (*this).mean();
 
-    return sqrt((meanSquared - mean * mean) / (m_size - 1));
+    return std::sqrt((meanSquared - mean * mean) / (m_size - 1));
 
 }
 

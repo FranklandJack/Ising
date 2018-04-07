@@ -249,7 +249,7 @@ int main(int argc, char const *argv[])
     		energyData.push_back(sweepEnergy);
 
     		double sweepMagnetistation = spinLattice.totalMag();
-    		magnetisationData.push_back(abs(sweepMagnetistation));
+    		magnetisationData.push_back(std::abs(sweepMagnetistation));
     	}
 
         // If the user plans to animate the configuration then output it here.

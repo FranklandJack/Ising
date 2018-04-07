@@ -32,6 +32,6 @@ double bootstrap(const DataArray::IDataFunctor &fcn, const DataArray &data, std:
 	// Compute the error according to the bootstrap formula.
 	double mean 	   = resampledFncValues.mean();
 	double meanSquared = resampledFncValues.squareMean();
-	double error 	   = sqrt(meanSquared - mean * mean);
+	double error 	   = std::sqrt(meanSquared - mean * mean);
 	return error;
 }
