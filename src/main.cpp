@@ -2,7 +2,6 @@
 #include "SpinLattice2D.hpp" // For the spin lattice.
 #include "glauberDynamics.hpp" // For implementing the Glauber dynamics.
 #include "kawasakiDynamics.hpp" //  For implementing the kawasaki dynamics.
-#include "SpinBitLattice2D.hpp" // For optimised implementation of spin lattice.
 #include "DataArray.hpp" // For holding Monte-Carlo samples and easily calculating their means and errors.
 #include "makeDirectory.hpp" // For creating output directories.
 #include "getTimeStamp.hpp" // For getting a time stamp.
