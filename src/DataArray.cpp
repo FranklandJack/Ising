@@ -71,21 +71,14 @@ double DataArray::squareMean() const
 
 }
 
+double DataArray::variance() const
+{
+  return squareMean() - mean()*mean();
+}
 
 double DataArray::error() const
 {
-    double sum = 0;
-
-    for(const auto& point : m_data)
-    {
-        sum += point*point;
-    }
-
-    double meanSquared = sum / m_size;
-    double mean        = (*this).mean();
-
-    return std::sqrt((meanSquared - mean * mean) / (m_size - 1));
-
+      return std::sqrt(variance() / (m_size - 1));
 }
 
 
