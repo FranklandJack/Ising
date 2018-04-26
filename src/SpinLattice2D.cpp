@@ -1,5 +1,5 @@
 #include "SpinLattice2D.hpp"
-const int SpinLattice2D::spinValues[SpinLattice2D::MAXSPINS] = {+1,-1};
+constexpr int SpinLattice2D::spinValues[];
 
 SpinLattice2D::SpinLattice2D(int rows, int cols): 	m_rowCount{rows},
 													m_colCount{cols},
