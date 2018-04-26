@@ -20,8 +20,6 @@
 #include "Timer.hpp" // For custom timer.
 #include <cmath> // For any maths functions.
 
-namespace po = boost::program_options;
-using namespace std;
 
 
 int main(int argc, char const *argv[])
@@ -37,7 +35,7 @@ int main(int argc, char const *argv[])
     unsigned int seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
 
     // Create a generator that can be fed to any distribution to produce pseudo random numbers according to that distribution.
-    default_random_engine generator(seed);
+    std::default_random_engine generator(seed);
 
 /*************************************************************************************************************************
 ******************************************************** Input **********************************************************
@@ -48,7 +46,7 @@ int main(int argc, char const *argv[])
     double temperature;
     int burnPeriod;
     int measurementInterval;
-    bool (*dynamics)(SpinLattice2D&, default_random_engine&, double, double, double);
+    bool (*dynamics)(SpinLattice2D&, std::default_random_engine&, double, double, double);
     IsingInputParameters::ErrorTypes errorMethod;
     IsingInputParameters::DynamicsType dynamicsType;
     double jConstant;
@@ -56,36 +54,36 @@ int main(int argc, char const *argv[])
     bool outputLattice;
     int sweeps;
     int autoCorrelationRange;
-    string outputName;
+    std::string outputName;
 
     // Set up optional command line argument.
-    po::options_description desc("Options for Ising model simulation");
+    boost::program_options::options_description desc("Options for Ising model simulation");
 
     desc.add_options()
         // Option 'row-count' and 'r' are equivalent.
-        ("row-count,r", po::value<int>(&rowCount)->default_value(50), "Number of rows in lattice.")
+        ("row-count,r", boost::program_options::value<int>(&rowCount)->default_value(50), "Number of rows in lattice.")
         // Option 'column-count' and 'c' are equivalent.
-        ("column-count,c", po::value<int>(&columnCount)->default_value(50), "Number of columns on lattice.")
+        ("column-count,c", boost::program_options::value<int>(&columnCount)->default_value(50), "Number of columns on lattice.")
         // Option 'temperature' and 'T' are equivalent.
-        ("temperature,T", po::value<double>(&temperature)->default_value(1), "Temperature of the lattice.")
+        ("temperature,T", boost::program_options::value<double>(&temperature)->default_value(1), "Temperature of the lattice.")
         // Option 'glauber-dynamics' and 'g' are equivalent.
         ("glauber-dynamics,g", "Choice of Glauber dynamics (is also default).")
         // Option 'kawasaki-dynamics' and 'k' are equivalent.
         ("kawasaki-dynamics,k", "Choice of Kawasaki Dynamics (will take precedence if user specialized Glauber dynamics as well).")
         // Option 'J-constant' and 'J' are equivalent.
-        ("J-constant,J", po::value<double>(&jConstant)->default_value(1), "J constant that determines units of energy.")
+        ("J-constant,J", boost::program_options::value<double>(&jConstant)->default_value(1), "J constant that determines units of energy.")
         // Options 'Boltzmann-constant' and 'B' are equivalent.
-        ("Boltzmann-constant",po::value<double>(&boltzmannConstant)->default_value(1),"Boltmann constant.")
+        ("Boltzmann-constant",boost::program_options::value<double>(&boltzmannConstant)->default_value(1),"Boltmann constant.")
         // Option 'sweeps' and 's' are equivalent.
-        ("sweeps,s", po::value<int>(&sweeps)->default_value(10000),"Number of sweeps to generate after the burn period.")
+        ("sweeps,s", boost::program_options::value<int>(&sweeps)->default_value(10000),"Number of sweeps to generate after the burn period.")
         // Option 'burn-period' and 'b' are equivalent.
-        ("burn-period,b", po::value<int>(&burnPeriod)->default_value(100), "Number of sweeps before measurement starts.")
+        ("burn-period,b", boost::program_options::value<int>(&burnPeriod)->default_value(100), "Number of sweeps before measurement starts.")
         // Option 'measurement-interval' and 'i' are equivalent.
-        ("measurement-interval,i", po::value<int>(&measurementInterval)->default_value(10), "How many sweeps between measurement are made.")
+        ("measurement-interval,i", boost::program_options::value<int>(&measurementInterval)->default_value(10), "How many sweeps between measurement are made.")
         // Option 'autocorrrelation-range' and 'C' are equivalent.
-        ("autocorrelation-range,C", po::value<int>(&autoCorrelationRange)->default_value(100), "Range of autocorrelation function for output.")
+        ("autocorrelation-range,C", boost::program_options::value<int>(&autoCorrelationRange)->default_value(100), "Range of autocorrelation function for output.")
         // Option 'output' and 'o' are equivalent.
-        ("output,o",po::value<std::string>(&outputName)->default_value(getTimeStamp()), "Name of output directory to save output files into.")
+        ("output,o",boost::program_options::value<std::string>(&outputName)->default_value(getTimeStamp()), "Name of output directory to save output files into.")
         // 'bootstrap is the only option'
         ("bootstrap", "Use bootstrap method to calculate errors that depend on second central moment (default)")
         // 'jackknife only option'
@@ -95,14 +93,14 @@ int main(int argc, char const *argv[])
         // Option 'help' and 'h' are equivalent.
         ("help,h", "produce help message");
 
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc,argv,desc), vm);
-    po::notify(vm);
+    boost::program_options::variables_map vm;
+    boost::program_options::store(boost::program_options::parse_command_line(argc,argv,desc), vm);
+    boost::program_options::notify(vm);
 
     // If the user asks for help display it then exit.
     if(vm.count("help"))
     {
-        cout << desc << "\n";
+        std::cout << desc << "\n";
         return 1;
     }
 
@@ -143,13 +141,13 @@ int main(int argc, char const *argv[])
     	columnCount,
     	temperature,
     	burnPeriod,
-		measurementInterval,
-		dynamicsType,
-		jConstant,
-		boltzmannConstant,
-		sweeps,
-		autoCorrelationRange,
-        errorMethod
+		  measurementInterval,
+		  dynamicsType,
+		  jConstant,
+		  boltzmannConstant,
+		  sweeps,
+		  autoCorrelationRange,
+      errorMethod
 	};
 
 /*************************************************************************************************************************
@@ -160,35 +158,35 @@ int main(int argc, char const *argv[])
     makeDirectory(outputName);
 
     //Create output file for the spin array.
-    fstream spinsOutput(outputName+"/spins.dat",ios::out);
+    std::fstream spinsOutput(outputName+"/spins.dat",std::ios::out);
 
     // Create output file for the input parameters.
-    fstream inputParameterOutput(outputName+"/input.txt",ios::out);
+    std::fstream inputParameterOutput(outputName+"/input.txt",std::ios::out);
 
     // Create an output file for the output values.
-    fstream resultsOutput(outputName+"/results.txt",ios::out);
+    std::fstream resultsOutput(outputName+"/results.txt",std::ios::out);
 
     // Create an output file for the energy.
-    fstream energyDataOutput(outputName+"/energy.dat",ios::out);
+    std::fstream energyDataOutput(outputName+"/energy.dat",std::ios::out);
 
     // Create an output file for the magnetisation.
-    fstream magnetisationDataOutput(outputName + "/magentistaion.dat", ios::out);
+    std::fstream magnetisationDataOutput(outputName + "/magentistaion.dat", std::ios::out);
 
     // Create an output file for the autocorrelation of the magnetisation.
-    fstream magnetisationAutoCorrelationOutput(outputName + "/magnetisationAutocorrelation.dat", ios::out);
+    std::fstream magnetisationAutoCorrelationOutput(outputName + "/magnetisationAutocorrelation.dat", std::ios::out);
 
     // Create an output file for the auto-correlation of the energy.
-    fstream energyAutoCorrelationOutput(outputName + "/energyAutoCorrelation.dat", ios::out);
+    std::fstream energyAutoCorrelationOutput(outputName + "/energyAutoCorrelation.dat", std::ios::out);
 
     // Create an output file for initial configuration.
-    fstream initialConfigOutput(outputName + "/initalConfiguration.dat", ios::out);
+    std::fstream initialConfigOutput(outputName + "/initalConfiguration.dat", std::ios::out);
 
 /*************************************************************************************************************************
 ************************************************* Simulation Set Up *****************************************************
 *************************************************************************************************************************/
 
     // Print input parameters to command line.
-    cout << inputParameters << '\n';
+    std::cout << inputParameters << '\n';
 
     // Print input parameters to an output file
     inputParameterOutput << inputParameters << '\n';
@@ -255,8 +253,8 @@ int main(int argc, char const *argv[])
         // If the user plans to animate the configuration then output it here.
         if(outputLattice && ((sweep % measurementInterval) == 0))
         {
-            spinsOutput.seekg(0,ios::beg);
-            spinsOutput << spinLattice << flush;
+            spinsOutput.seekg(0,std::ios::beg);
+            spinsOutput << spinLattice << std::flush;
         }
     }
 
@@ -265,8 +263,8 @@ int main(int argc, char const *argv[])
 *************************************************************************************************************************/
 
     // Print the final configuration so it can be reused in future.
-    spinsOutput.seekg(0,ios::beg);
-    spinsOutput << spinLattice << flush;
+    spinsOutput.seekg(0,std::ios::beg);
+    spinsOutput << spinLattice << std::flush;
 
 
    	// Print data to files.
@@ -338,10 +336,10 @@ int main(int argc, char const *argv[])
    	resultsOutput << results << '\n';
 
     // Output results to command line.
-    cout << results << '\n';
+    std::cout << results << '\n';
 
     // Report how long the program took to execute.
-    cout << setw(30) << setfill(' ') << left << "Time take to execute(s) =    " << right << timer.elapsed() << endl << endl;
+    std::cout << std::setw(30) << std::setfill(' ') << std::left << "Time take to execute(s) =    " << std::right << timer.elapsed() << std::endl << std::endl;
 
     return 0;
 }
