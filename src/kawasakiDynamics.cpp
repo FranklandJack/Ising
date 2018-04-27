@@ -1,11 +1,11 @@
 #include "kawasakiDynamics.hpp"
-bool kawasakiDynamics(SpinLattice2D &spinLattice, 
-					  std::default_random_engine &generator, 
-					  double jConstant, 
-					  double boltzmannConstant, 
+bool kawasakiDynamics(SpinLattice2D &spinLattice,
+					  std::default_random_engine &generator,
+					  double jConstant,
+					  double boltzmannConstant,
 					  double temperature)
 {
-	// Create random number generators for the rows and columns of the spin lattice 
+	// Create random number generators for the rows and columns of the spin lattice
 	// constructor range is closed upper bound so need to subtract 1.
 	std::uniform_int_distribution<int> rowDistriubution(0,spinLattice.getRows()-1);
 	std::uniform_int_distribution<int> colDistriubution(0,spinLattice.getCols()-1);
@@ -32,7 +32,7 @@ bool kawasakiDynamics(SpinLattice2D &spinLattice,
 
 	// Calculate the energy after the swap.
 	double energyAfter = spinLattice.sitePairEnergy(row1, col1, row2, col2, jConstant);
-	
+
 	// Do the metropolis update.
 	if(!metropolisUpdate(energyBefore, energyAfter, generator, boltzmannConstant, temperature))
 	{
@@ -45,5 +45,5 @@ bool kawasakiDynamics(SpinLattice2D &spinLattice,
 
 	// If successful no need to swap spins back.
 	return true;
-	
+
 }

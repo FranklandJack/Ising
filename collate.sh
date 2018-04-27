@@ -23,7 +23,7 @@ do
 	printf " " >> TM.dat
 	printf " " >> TX.dat
 	printf " " >> TC.dat
- 
+
 	# Get the values and error of E, M, X and C from the results file and append them with the temperature.
 	awk '/^E: /{printf $(NF-2)}' $results/results.txt >> TE.dat
 	# Put an empty column in each file.
@@ -38,7 +38,7 @@ do
 	awk '/^X: /{printf $(NF-2)}' $results/results.txt >> TX.dat
 	# Put an empty column in each file.
 	printf " " >> TX.dat
-	awk '/^X: /{print $(NF)}' $results/results.txt >> TX.dat 
+	awk '/^X: /{print $(NF)}' $results/results.txt >> TX.dat
 
 	awk '/^C: /{printf $(NF-2)}' $results/results.txt >> TC.dat
 	# Put an empty column in each file.
@@ -48,7 +48,7 @@ do
 done
 
 # Remove duplicate lines from files.
-sort -u TE.dat -o TE.dat
-sort -u TM.dat -o TM.dat
-sort -u TX.dat -o TX.dat
-sort -u TC.dat -o TC.dat
+sort -u -n TE.dat -o TE.dat
+sort -u -n TM.dat -o TM.dat
+sort -u -n TX.dat -o TX.dat
+sort -u -n TC.dat -o TC.dat

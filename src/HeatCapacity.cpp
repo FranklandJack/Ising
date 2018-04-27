@@ -6,5 +6,5 @@ HeatCapacity::HeatCapacity(double boltzmannConstant, double temperature) : 	m_bo
 
 double HeatCapacity::operator()(const DataArray &data) const
 {
-	return 1/(m_boltzmannConstant * m_temperature * m_temperature) * (data.squareMean() - data.mean() * data.mean()); 
+	return 1/(m_boltzmannConstant * m_temperature * m_temperature) * (data.variance()); 
 }

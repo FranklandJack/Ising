@@ -17,7 +17,7 @@
  * The Kawasaki dynamics work by proposing a new configuration by swapping 2 spins and performing a metropolis
  * update.
  */
-bool kawasakiDynamics(SpinLattice2D &lattice, 
+bool kawasakiDynamics(SpinLattice2D &lattice,
 					  std::default_random_engine& generator,
 					  double jConstant,
 					  double boltzmannConstant,

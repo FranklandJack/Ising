@@ -5,5 +5,5 @@ Susceptibility::Susceptibility(double boltzmannConstant, double temperature) : m
 
 double Susceptibility::operator()(const DataArray &data) const
 {
-	return 1/(m_boltzmannConstant * m_temperature) * (data.squareMean() - data.mean() * data.mean());
+	return 1/(m_boltzmannConstant * m_temperature) * (data.variance());
 }

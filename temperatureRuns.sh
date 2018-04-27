@@ -1,5 +1,4 @@
-for i in `seq 10 30`;
+for temp in $(seq 1 0.1 3);
 do
-	temp=$(python -c "print($i/10.0)")
-	./ising -T $temp 
+	./ising -T $temp -k -b 10000
 done

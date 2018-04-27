@@ -17,9 +17,9 @@
  * The Glayber dynamics work by proposing a new configuration by flipping a spin and performing a Metropolis
  * update.
  */
-bool glauberDynamics(SpinLattice2D& lattice, 
-					 std::default_random_engine& generator, 
-					 double jConstant, 
-					 double boltzmannConstant, 
+bool glauberDynamics(SpinLattice2D& lattice,
+					 std::default_random_engine& generator,
+					 double jConstant,
+					 double boltzmannConstant,
 					 double temperature);
 #endif /* glauberDynamics_hpp */
